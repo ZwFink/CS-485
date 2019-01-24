@@ -14,7 +14,28 @@ def main():
 
     infile_data = parse_input( sys.argv[ 1 ] )
 
+    with open( outfile, 'w' ) as out_file:
+        for trans_size, times in infile_data.items():
+            avg_time = get_average_time( times )
+            infile_data[ trans_size ]  = avg_time
+        sorted_keys = sorted( infile_data.keys() )
 
+        for key in sorted_keys:
+            out_file.write( '%f\t%f\n' % ( key, infile_data[ key ]))
+    
+def get_average_time( times_list ):
+    length = len( times_list )
+    fixed_times = list()
+    
+    for current_time in times_list:
+        us = current_time.strip().split( 'us' )[ 0 ]
+        us = float( us )
+        fixed_times.append( us )
+    sum_times = sum( fixed_times )
+    return sum_times / length
+
+
+        
 def parse_input( in_filename ):
     out_dict = {}
 
