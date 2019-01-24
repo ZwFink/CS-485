@@ -22,6 +22,17 @@ def main():
 
         for key in sorted_keys:
             out_file.write( '%f\t%f\n' % ( key, infile_data[ key ]))
+
+    x_axis = list( infile_data.keys() )
+    y_axis = [ infile_data[ item ] for item in x_axis ]
+
+    ax = pyplot.subplot()
+    ax.plot()
+    pyplot.xlabel( "Size of Transfer (in MB)")
+    pyplot.ylabel( "Time for Transfer (in us)")
+    pyplot.title( "Size of Transfer vs Time")
+    ax.scatter( x_axis, y_axis )
+    pyplot.show()
     
 def get_average_time( times_list ):
     length = len( times_list )
