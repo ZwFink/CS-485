@@ -16,6 +16,7 @@ using namespace std;
 
 int main( int argc, char **argv )
 {
+   
    // warm up GPU for time trialing
    warmUpGPU();
 
@@ -64,10 +65,10 @@ int main( int argc, char **argv )
             cout << "\nError: A error with code " << errCode << endl; 
          }
 
-         /*
+         
          // Print the size of data to transfer
          printf( "\nSize of transferred data (Bytes): %lu\n\n", sizeof(unsigned int) * N * numChunks );
-         */
+         
 
          // Loop through array and copy each element in dataArray from Host to Device
          // Do this NUM_CHUNKS amount of times	
