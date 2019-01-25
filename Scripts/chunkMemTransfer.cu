@@ -6,7 +6,6 @@
 #include <iostream>
 
 // REMINDER: unsigned int: 4 Bytes, NUM_CHUNKS * (N * 4) = 1024^2 = 1 MiB
-#define NUM_BYTES 4
 
 // function declaration
 void warmUpGPU();
@@ -16,26 +15,27 @@ using namespace std;
 
 int main( int argc, char **argv )
 {
-   // warm up GPU for time trialing
-   warmUpGPU();
-
-   // grab arguments from command line
-   int numChunks = atoi( argv[ 1 ] );
-   int bytesToTransfer = atoi( argv[ 2 ] ); 
-   
-   // init variables
-  
-   // set iterators
-   int index, trialIndex;
- 
    // set lowest chunk size to 1
    unsigned int LOWEST_CHUNK_SIZE = 1;
 
    // set the number of trials to 10
-   int NUM_TRIALS = 10;
-
+   unsigned int NUM_TRIALS = 10;
+   
+   // set the number of bytes of unsigned int
+   unsigned int NUM_BYTES = 4;
+   
+   // grab arguments from command line
+   int numChunks = atoi( argv[ 1 ] );
+   int bytesToTransfer = atoi( argv[ 2 ] ); 
+   
+   // set iterators
+   int index, trialIndex;
+ 
 	// CUDA error code:
 	cudaError_t errCode = cudaSuccess;
+   
+   // warm up GPU for time trialing
+   warmUpGPU();
 
    // loop until chunk size is 1, decrementing number of chunks by half each iteration
    while( numChunks >= LOWEST_CHUNK_SIZE )
