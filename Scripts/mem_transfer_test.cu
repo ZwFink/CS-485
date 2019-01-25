@@ -15,7 +15,7 @@ int main( int argc, char **argv )
 	int upper_bound = atoi( argv[ 2 ] );
 
 	warmUpGPU();
-	const int num_trials = 10;
+	const int num_trials = 3;
 	int outer_index = 0;
 
 		while( num_items < upper_bound )
@@ -42,6 +42,8 @@ int main( int argc, char **argv )
 				}
 
 				error_code = cudaMemcpy( dev_A, host_A, sizeof( char ) * num_items, cudaMemcpyHostToDevice );
+
+				cudaDeviceSynchronize();
 
 
 				free( host_A );
