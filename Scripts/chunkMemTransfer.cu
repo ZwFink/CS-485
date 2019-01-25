@@ -31,8 +31,8 @@ int main( int argc, char **argv )
    // set iterators
    int index, trialIndex;
  
-	// CUDA error code:
-	cudaError_t errCode = cudaSuccess;
+   // CUDA error code:
+   cudaError_t errCode = cudaSuccess;
    
    // warm up GPU for time trialing
    warmUpGPU();
