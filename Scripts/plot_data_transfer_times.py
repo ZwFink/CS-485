@@ -29,8 +29,8 @@ def main():
     ax = pyplot.subplot()
     ax.plot()
     pyplot.xlabel( "Size of Transfer (in MB)")
-    pyplot.ylabel( "Time for Transfer (in us)")
-    pyplot.title( "Size of Transfer vs Time")
+    pyplot.ylabel( "Bandwidth (MB/S)")
+    pyplot.title( "Size of Transfer vs. Bandwidth")
     ax.scatter( x_axis, y_axis )
     pyplot.show()
     
@@ -56,12 +56,16 @@ def parse_input( in_filename ):
                 split_line = line.split()
 
                 byte_size     = to_megabytes( split_line[ 7 ] )
-                transfer_time = split_line[ 1 ]
+                #transfer_time = split_line[ 1 ]
+                throughput = str( to_megabytes( split_line[ 8 ] ) ) + 'us'
+
+                #if byte_size >= 3:
+                #   break
 
                 if byte_size not in out_dict:
                     out_dict[ byte_size ] = list()
 
-                out_dict[ byte_size ].append( transfer_time )
+                out_dict[ byte_size ].append( throughput )
     return out_dict
 
 
@@ -72,6 +76,10 @@ def to_megabytes( string_value ):
     elif 'MB' in string_value:
         value = float( string_value.split( 'MB' )[ 0 ] )
         return value
+    elif 'GB' in string_value:
+        value = float( string_value.split( 'GB' )[ 0 ] ) * 1000
+        return value
+
     elif 'B' in string_value:
         value = float( string_value.split( 'B' )[ 0 ] )
         return value / ( 1000 * 1000 )
