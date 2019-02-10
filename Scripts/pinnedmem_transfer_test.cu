@@ -53,7 +53,7 @@ int main( int argc, char **argv )
 				cudaDeviceSynchronize();
 
 
-				cudaFree( host_A );
+				cudaFreeHost( host_A );
 				cudaFree( dev_A );
 			}
 
