@@ -5,14 +5,21 @@
 #include <iostream>
 
 using namespace std;
-
+const unsigned long int EXTRA_SPACE = 100000; 
+const unsigned int STEP_SIZE        = 64;
 void warmUpGPU();
 
 int main( int argc, char **argv )
 {
 	cudaError_t error_code;
-	int num_items = atoi( argv[ 1 ] );
-	int upper_bound = atoi( argv[ 2 ] );
+	unsigned long int num_items = atoi( argv[ 1 ] );
+	unsigned long int upper_bound = atoi( argv[ 2 ] );
+	char *host_A = NULL;
+	char *staging_mem = NULL;
+	double start_time = 0;
+	double end_time   = 0;
+
+	error_code = cudaMallocHost( (char**) &host_A, sizeof( char ) * num_items );
 
 	warmUpGPU();
 	const int num_trials = 3;
@@ -24,15 +31,18 @@ int main( int argc, char **argv )
 			for( outer_index = 0; outer_index < num_trials; outer_index++ )
 			{
 				char *dev_A = NULL;
-				char *host_A = (char*) malloc( sizeof( char ) * num_items );
 
+				staging_mem = malloc( sizeof( char ) * num_items + 1 );
+				
 				int index = 0;
 				for( index = 0; index < num_items - 1; index++ )
 				{
-					host_A[ index ] = 'A';
+					staging_mem[ index ] = 'A';
 				}
 
-				host_A[ num_items - 1 ] = '\0';
+				staging_mem[ num_items - 1 ] = '\0';
+
+				memcpy( host_A, staging_mem, num_items * sizeof( char ) )
 
 				error_code = cudaMalloc( (char **) &dev_A, sizeof( char ) * num_items );
 
@@ -41,18 +51,23 @@ int main( int argc, char **argv )
 					cout << "Error allocating on device" << endl;
 				}
 
+				start = omp_get_wtime();
 				error_code = cudaMemcpy( dev_A, host_A, sizeof( char ) * num_items, cudaMemcpyHostToDevice );
 
 				cudaDeviceSynchronize();
+				end = omp_get_wtime();
 
+				free( staging_mem );
 
-				free( host_A );
 				cudaFree( dev_A );
+
+				printf( "%ul\t%f\n", num_items, end - start );
 			}
 
-			num_items += 64;
+			num_items += STEP_SIZE;
 
 		}
+		cudaFreeHost( host_A );
 
 
 	return EXIT_SUCCESS;
