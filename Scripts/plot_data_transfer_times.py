@@ -21,16 +21,17 @@ def main():
         sorted_keys = sorted( infile_data.keys() )
 
         for key in sorted_keys:
-            out_file.write( '%f\t%f\n' % ( key, infile_data[ key ]))
+            pass
+            # out_file.write( '%f\t%f\n' % ( key, infile_data[ key ]))
 
     x_axis = list( infile_data.keys() )
     y_axis = [ infile_data[ item ] for item in x_axis ]
 
     ax = pyplot.subplot()
     ax.plot()
-    pyplot.xlabel( "Size of Transfer (in MB)")
-    pyplot.ylabel( "Bandwidth (MB/S)")
-    pyplot.title( "Size of Transfer vs. Bandwidth")
+    pyplot.xlabel( "Size of Transfer (in B)")
+    pyplot.ylabel( "Time to Transfer (us)")
+    pyplot.title( "Size of Transfer vs. Time to Transfer")
     ax.scatter( x_axis, y_axis )
     pyplot.show()
     
@@ -48,6 +49,22 @@ def get_average_time( times_list ):
 
         
 def parse_input( in_filename ):
+    out_dict = {}
+
+    with open( in_filename, 'r' ) as open_file:
+        
+        for line in open_file:
+            size, time = line.strip().split( '\t' )
+            size = int( size )
+
+            if size not in out_dict:
+                out_dict[ int( size ) ] = list()
+            out_dict[ size ].append( time + 'us' )
+    return out_dict
+                
+
+
+def parse_input_( in_filename ):
     out_dict = {}
 
     with open( in_filename, 'r' ) as open_file:
