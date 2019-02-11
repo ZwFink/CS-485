@@ -13,6 +13,7 @@ using namespace std;
 
 const unsigned int DEVICE_CAPACITY_GB = 16;
 const unsigned int DEFAULT_NUM_ARGS   = 3; // 2 + 1, first is prog name
+const unsigned int SEED_RAND          = 42;
 
 typedef struct command_args
 {
@@ -22,15 +23,20 @@ typedef struct command_args
 
 
 bool parse_args( int argc, char **argv, command_args_t *dest );
-unsigned int calc_num_items( unsigned int max_size_gb );
+int compare_ints( const void *a, const void *b );
+uint64_t calc_num_items( unsigned int max_size_gb );
+void create_sorted_data( unsigned int **data_loc, uint64_t num_items );
 
 
 int main( int argc, char **argv )
 {
     bool correct_args = false;
     command_args_t args;
+    srand( SEED_RAND );
 
-    unsigned int num_items = 0;
+    unsigned int **data = NULL;
+
+    uint64_t num_items = 0;
 
     correct_args = parse_args( argc, argv, &args );
 
@@ -44,7 +50,11 @@ int main( int argc, char **argv )
 
     num_items = calc_num_items( args.total_data_size );
 
+    create_sorted_data( data, num_items );
+
     printf( "Num of items: %" PRIu64 "\n", num_items );
+
+    free( *data );
 
     return EXIT_SUCCESS;
 }
@@ -61,13 +71,36 @@ bool parse_args( int argc, char **argv, command_args_t *dest )
     return true;
 }
 
-unsigned int calc_num_items( unsigned int max_size_gb )
+uint64_t calc_num_items( unsigned int max_size_gb )
 {
-    const unsigned int GIGABYTE_EXPONENT = 30;
-    unsigned int out_items = 0;
+    const uint64_t GIGABYTE_EXPONENT = 30;
+    uint64_t out_items = 0;
 
-    out_items = ( ( (unsigned int) 1 << GIGABYTE_EXPONENT ) * max_size_gb ) /
+    out_items = ( ( (uint64_t) 1 << GIGABYTE_EXPONENT ) * max_size_gb ) /
                 sizeof( unsigned int );
 
     return out_items;
+}
+
+
+void create_sorted_data( unsigned int **data_loc, uint64_t num_items )
+{
+    int *data_ptr = NULL;
+    uint64_t index = 0;
+
+    data_ptr = malloc( sizeof( unsigned int) * num_items );
+
+    for( index = 0; index < num_items; index++ )
+        {
+            data_ptr[ index ] = (unsigned int) rand();
+        }
+
+    qsort( data_ptr, num_items, sizeof( unsigned int ), compare_ints );
+
+    *data_loc = data_ptr;
+}
+
+int compare_ints( const void *a, const void *b )
+{
+    return *(int*)a - *(int*)b;
 }
