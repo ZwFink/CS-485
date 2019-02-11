@@ -149,7 +149,6 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
                                                       ( DEVICE_CAPACITY_GB  / 2 ) );
     thrust::host_vector<unsigned int> merged_data( data.size() );
 
-
     while( gb_left_to_transfer > 0 )
         {
 
@@ -177,13 +176,16 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
 
                
             thrust::merge( thrust::device, dev_unmerged.begin(), dev_unmerged.begin() + start_index,
-                               dev_unmerged.begin() + start_index + 1, dev_unmerged.begin() + end_index-1000,
+                               dev_unmerged.begin() + start_index + 1, dev_unmerged.begin() + end_index,
                                dev_merged.begin()
                                );
 
             gb_on_device = 0;
             gb_transferred = 0;
             base_index = 0;
+
+            merged_data = dev_merged;
+
         }
 
     // return merged_data;
