@@ -11,15 +11,10 @@ def main():
     arg.add_argument( '--restrict_domain', help = "Comma-separated upper and lower bound "
                                                 "for domain"
                   )
-    if len( sys.argv ) != 3:
-        print( "USAGE: plot_data_transfer_times.py infile outfile" )
-        sys.exit( 1 )
 
     args = arg.parse_args()
 
     infile = args.input
-    outfile = args
-
 
     infile_data = parse_input( infile )
 
@@ -28,7 +23,15 @@ def main():
         infile_data[ trans_size ]  = avg_time
     sorted_keys = sorted( infile_data.keys() )
 
-    x_axis = list( infile_data.keys() )
+    if args.restrict_domain:
+        x_start, x_end = args.restrict_domain.split( ',' )
+        x_start = int( x_start )
+        x_end   = int( x_end )
+
+        x_axis = list( infile_data.keys() )[ x_start // 64 : x_end // 64 ]
+    else:
+        x_axis = list( infile_data.keys() )
+
     y_axis = [ infile_data[ item ] for item in x_axis ]
 
     ax = pyplot.subplot()
