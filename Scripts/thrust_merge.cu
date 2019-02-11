@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <types.h>
 #include <stdbool.h>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
@@ -17,13 +18,40 @@ typedef struct command_args
 {
     unsigned int total_data_size;
     unsigned int block_size;
-};
+} command_args_t;
+
+
+bool parse_args( int argc, char **argv, command_args_t *dest );
+
 
 int main( int argc, char **argv )
 {
-    
+    bool correct_args = false;
+    command_args_t args;
+
+    correct_args = parse_args( argc, argv, &args );
+
+    if( !correct_args )
+        {
+            printf( "USAGE: thrust_merge total_size block_size\n"
+                    "total_size and block_size are in GB\n"
+                  );
+            return EXIT_FAILURE;
+        }
 
 
     return EXIT_SUCCESS;
+}
+
+bool parse_args( int argc, char **argv, command_args_t *dest )
+{
+    if( (unsigned int) argc != DEFAULT_NUM_ARGS )
+        {
+            return false;
+        }
+    dest->total_data_size = atoi( argv[ 1 ] );
+    dest->block_size      = atoi( argv[ 2 ] );
+
+    return true;
 }
 
