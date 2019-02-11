@@ -29,7 +29,12 @@ int compare_ints( const void *a, const void *b );
 uint64_t calc_num_items( unsigned int max_size_gb );
 void report_time( double start_time, double end_time, const char *description );
 std::vector<unsigned int> create_sorted_data( uint64_t num_items );
+uint64_t num_items_in_gb( size_t item_size );
+void merge_data( std::vector<unsigned int> data,
+                 unsigned int size_in_gb, unsigned int block_size
+               );
 
+void verify_data_sorted( std::vector<unsigned int> data );
 
 int main( int argc, char **argv )
 {
@@ -51,14 +56,27 @@ int main( int argc, char **argv )
             return EXIT_FAILURE;
         }
 
+    // determine the number of 4 byte unsigned integers that can be used
     num_items = calc_num_items( args.total_data_size );
     printf( "Num of items: %" PRIu64 "\n", num_items );
 
+    // create the data, time how long it takes to create
     start_time = omp_get_wtime();
     std::vector<unsigned int> data = create_sorted_data( num_items );
     end_time   = omp_get_wtime();
 
+    // report time taken to sort data
     report_time( start_time, end_time, "Time taken to sort data" );
+
+    // time how long it takes to merge the data
+    start_time = omp_get_wtime();
+    merge_data( data, args.total_data_size, args.block_size );
+    end_time   = omp_get_wtime();
+
+    report_time( start_time, end_time, "Time taken to merge all data on GPU" );
+    // verify that the data is still sorted
+    verify_data_sorted( data );
+
 
     return EXIT_SUCCESS;
 }
@@ -77,11 +95,9 @@ bool parse_args( int argc, char **argv, command_args_t *dest )
 
 uint64_t calc_num_items( unsigned int max_size_gb )
 {
-    const uint64_t GIGABYTE_EXPONENT = 30;
     uint64_t out_items = 0;
 
-    out_items = ( ( (uint64_t) 1 << GIGABYTE_EXPONENT ) * max_size_gb ) /
-                sizeof( unsigned int );
+    out_items = num_items_in_gb( sizeof( unsigned int ) ) * max_size_gb;
 
     return out_items;
 }
@@ -109,4 +125,28 @@ int compare_ints( const void *a, const void *b )
 void report_time( double start_time, double end_time, const char *description )
 {
     printf( "%s: %f\n", description, end_time - start_time );
+}
+void merge_data( std::vector<unsigned int> data,
+                 unsigned int size_in_gb, unsigned int block_size )
+{
+
+}
+
+void verify_data_sorted( std::vector<unsigned int> data )
+{
+    uint64_t index = 0;
+
+    for( index = 0; index < data.size() - 1; index++ )
+        {
+            if( data[ index ] > data[ index + 1 ] )
+                {
+                    printf( "Bad jujumagumbo\n" );
+                }
+        }
+}
+
+uint64_t num_items_in_gb( size_t item_size )
+{
+    const uint64_t GIGABYTE_EXPONENT = 30;
+    return ( ( 1LLU << GIGABYTE_EXPONENT ) ) / item_size;
 }
