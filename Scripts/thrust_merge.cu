@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const unsigned int DEVICE_CAPACITY_GB = 14;
+const unsigned int DEVICE_CAPACITY_GB = 10;
 const unsigned int DEFAULT_NUM_ARGS   = 3; // 2 + 1, first is prog name
 const unsigned int SEED_RAND          = 42;
 
@@ -136,26 +136,27 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
     uint64_t start_index        = 0;
     uint64_t end_index          = 0;
     uint64_t base_index         = 0;
+    uint64_t total_items_trans  = 0;
     unsigned int gb_left_to_transfer = size_in_gb;
     unsigned int gb_on_device   = 0;
     unsigned int gb_transferred = 0;
     unsigned int gb_transferring = 0;
+    unsigned int gb_total_transfer = 0;
 
-    thrust::device_vector<unsigned int> dev_unmerged(  items_in_one_gb *
-                                                      ( DEVICE_CAPACITY_GB / 2 ) );
     thrust::device_vector<unsigned int> dev_merged(  items_in_one_gb *
-                                                      ( DEVICE_CAPACITY_GB / 2 ) );
-
+                                                      ( DEVICE_CAPACITY_GB  / 2 ) );
+    thrust::device_vector<unsigned int> dev_unmerged(  items_in_one_gb *
+                                                      ( DEVICE_CAPACITY_GB  / 2 ) );
     thrust::host_vector<unsigned int> merged_data( data.size() );
 
 
     while( gb_left_to_transfer > 0 )
         {
+
             while( gb_on_device <= DEVICE_CAPACITY_GB / 2
                    && gb_left_to_transfer > 0 )
                 {
                     gb_transferring = min( gb_left_to_transfer, block_size );
-                    printf( "To transfer: %d\n", gb_left_to_transfer );
                     num_elements_trans = items_in_one_gb * gb_transferring; 
 
                     transfer_items_to_device( dev_unmerged, data, num_elements_trans, base_index );
@@ -166,16 +167,26 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
 
                     base_index = gb_transferred * items_in_one_gb - 1;
 
-                    printf( "GB transferred: %u\n", gb_transferred );
                     gb_left_to_transfer -= gb_transferring;
                 }
 
+            gb_total_transfer += gb_transferred;
+
+            start_index = ( ( gb_total_transfer * items_in_one_gb ) ) / 2;
+            end_index   = ( ( gb_total_transfer * items_in_one_gb ) ) - 1;
+
+               
+            thrust::merge( thrust::device, dev_unmerged.begin(), dev_unmerged.begin() + start_index,
+                               dev_unmerged.begin() + start_index + 1, dev_unmerged.begin() + end_index-1000,
+                               dev_merged.begin()
+                               );
+
             gb_on_device = 0;
             gb_transferred = 0;
+            base_index = 0;
         }
 
     // return merged_data;
-    printf(" Finished\n" );
     return merged_data;
 
 }
