@@ -30,7 +30,7 @@ uint64_t calc_num_items( unsigned int max_size_gb );
 void report_time( double start_time, double end_time, const char *description );
 std::vector<unsigned int> create_sorted_data( uint64_t num_items );
 uint64_t num_items_in_gb( size_t item_size );
-void merge_data( std::vector<unsigned int> data,
+std::vector<unsigned int> merge_data( std::vector<unsigned int> data,
                  unsigned int size_in_gb, unsigned int block_size
                );
 
@@ -126,9 +126,32 @@ void report_time( double start_time, double end_time, const char *description )
 {
     printf( "%s: %f\n", description, end_time - start_time );
 }
-void merge_data( std::vector<unsigned int> data,
+std::vector<unsigned int> merge_data( std::vector<unsigned int> data,
                  unsigned int size_in_gb, unsigned int block_size )
 {
+    uint64_t items_in_one_gb    = num_items_in_gb( sizeof( unsigned int ) );
+    uint64_t num_elements_trans = 0;
+    uint64_t start_index        = 0;
+    uint64_t end_index          = 0;
+    unsigned int gb_left_to_transfer = size_in_gb;
+    unsigned int gb_on_device   = 0;
+
+    std::vector<unsigned int> merged_data( data.size() );
+
+    while( gb_left_to_transfer > 0 )
+        {
+            while( gb_on_device < DEVICE_CAPACITY_GB / 2 )
+                {
+                    num_elements_trans = items_in_one_gb * min( gb_left_to_transfer, block_size ); 
+
+                    gb_on_device += num_elements_trans;
+                }
+
+            gb_left_to_transfer -= gb_on_device;
+            gb_on_device = 0;
+        }
+
+    return merged_data;
 
 }
 
