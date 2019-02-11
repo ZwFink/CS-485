@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
 
+import argparse
 import matplotlib.pyplot as pyplot  # For creating chart
 import sys
 
 def main():
+    arg = argparse.ArgumentParser()
+
+    arg.add_argument( '-i', '--input', help = "Tab-delimited input file to parse" )
+    arg.add_argument( '--restrict_domain', help = "Comma-separated upper and lower bound "
+                                                "for domain"
+                  )
     if len( sys.argv ) != 3:
         print( "USAGE: plot_data_transfer_times.py infile outfile" )
         sys.exit( 1 )
 
-    infile = sys.argv[ 1 ]
-    outfile = sys.argv[ 2 ]
+    args = arg.parse_args()
+
+    infile = args.input
+    outfile = args
 
 
-    infile_data = parse_input( sys.argv[ 1 ] )
+    infile_data = parse_input( infile )
 
-    with open( outfile, 'w' ) as out_file:
-        for trans_size, times in infile_data.items():
-            avg_time = get_average_time( times )
-            infile_data[ trans_size ]  = avg_time
-        sorted_keys = sorted( infile_data.keys() )
-
-        for key in sorted_keys:
-            pass
-            # out_file.write( '%f\t%f\n' % ( key, infile_data[ key ]))
+    for trans_size, times in infile_data.items():
+        avg_time = get_average_time( times )
+        infile_data[ trans_size ]  = avg_time
+    sorted_keys = sorted( infile_data.keys() )
 
     x_axis = list( infile_data.keys() )
     y_axis = [ infile_data[ item ] for item in x_axis ]
