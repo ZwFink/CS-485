@@ -16,13 +16,13 @@ const unsigned int DEFAULT_NUM_ARGS   = 3; // 2 + 1, first is prog name
 
 typedef struct command_args
 {
-    uint64_t total_data_size;
+    unsigned int total_data_size;
     unsigned int block_size;
 } command_args_t;
 
 
 bool parse_args( int argc, char **argv, command_args_t *dest );
-uint64_t calc_num_items( uint64_t max_size_gb );
+unsigned int calc_num_items( unsigned int max_size_gb );
 
 
 int main( int argc, char **argv )
@@ -30,7 +30,7 @@ int main( int argc, char **argv )
     bool correct_args = false;
     command_args_t args;
 
-    uint64_t num_items = 0;
+    unsigned int num_items = 0;
 
     correct_args = parse_args( argc, argv, &args );
 
@@ -55,17 +55,19 @@ bool parse_args( int argc, char **argv, command_args_t *dest )
         {
             return false;
         }
-    dest->total_data_size = (uint64_t) atoll( argv[ 1 ] );
+    dest->total_data_size = (unsigned int) atoll( argv[ 1 ] );
     dest->block_size      = atoi( argv[ 2 ] );
 
     return true;
 }
 
-uint64_t calc_num_items( uint64_t max_size_gb )
+unsigned int calc_num_items( unsigned int max_size_gb )
 {
-    uint64_t out_items = 0;
+    const unsigned int GIGABYTE_EXPONENT = 30;
+    unsigned int out_items = 0;
 
-    out_items = ( ( 1ULL << 30 ) * max_size_gb ) / sizeof( uint64_t );
+    out_items = ( ( (unsigned int) 1 << GIGABYTE_EXPONENT ) * max_size_gb ) /
+                sizeof( unsigned int );
 
     return out_items;
 }
