@@ -151,12 +151,12 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
 
     while( gb_left_to_transfer > 0 )
         {
-            while( gb_on_device <= DEVICE_CAPACITY_GB / 2 )
+            while( gb_on_device <= DEVICE_CAPACITY_GB / 2
+                   && gb_left_to_transfer > 0 )
                 {
                     gb_transferring = min( gb_left_to_transfer, block_size );
+                    printf( "To transfer: %d\n", gb_left_to_transfer );
                     num_elements_trans = items_in_one_gb * gb_transferring; 
-
-                    base_index = gb_transferred * items_in_one_gb - 1;
 
                     transfer_items_to_device( dev_unmerged, data, num_elements_trans, base_index );
 
@@ -164,14 +164,18 @@ thrust::host_vector<unsigned int> merge_data( thrust::host_vector<unsigned int> 
 
                     gb_transferred += gb_transferring;
 
+                    base_index = gb_transferred * items_in_one_gb - 1;
+
                     printf( "GB transferred: %u\n", gb_transferred );
+                    gb_left_to_transfer -= gb_transferring;
                 }
 
-            gb_left_to_transfer -= gb_on_device;
             gb_on_device = 0;
             gb_transferred = 0;
         }
 
+    // return merged_data;
+    printf(" Finished\n" );
     return merged_data;
 
 }
@@ -199,10 +203,5 @@ void transfer_items_to_device( thrust::device_vector<unsigned int> dev_D, thrust
                                uint64_t to_transfer, uint64_t start_index
                              )
 {
-    uint64_t index = 0;
-    for( index = start_index; index < start_index + to_transfer; index++ )
-        {
-            dev_D[ index ] = host_D[ index ];
-        }
-
+    thrust::copy( host_D.begin() + start_index, host_D.begin() + start_index + to_transfer - 1, dev_D.begin() + start_index );
 }
