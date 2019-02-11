@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <inttypes.h>
+#include <vector>
 #include <stdbool.h>
+#include <algorithm>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/generate.h>
@@ -25,7 +27,7 @@ typedef struct command_args
 bool parse_args( int argc, char **argv, command_args_t *dest );
 int compare_ints( const void *a, const void *b );
 uint64_t calc_num_items( unsigned int max_size_gb );
-void create_sorted_data( unsigned int **data_loc, uint64_t num_items );
+std::vector<unsigned int> create_sorted_data( uint64_t num_items );
 
 
 int main( int argc, char **argv )
@@ -33,8 +35,6 @@ int main( int argc, char **argv )
     bool correct_args = false;
     command_args_t args;
     srand( SEED_RAND );
-
-    unsigned int **data = NULL;
 
     uint64_t num_items = 0;
 
@@ -49,12 +49,9 @@ int main( int argc, char **argv )
         }
 
     num_items = calc_num_items( args.total_data_size );
-
-    create_sorted_data( data, num_items );
-
     printf( "Num of items: %" PRIu64 "\n", num_items );
 
-    free( *data );
+    std::vector<unsigned int> data = create_sorted_data( num_items );
 
     return EXIT_SUCCESS;
 }
@@ -83,21 +80,19 @@ uint64_t calc_num_items( unsigned int max_size_gb )
 }
 
 
-void create_sorted_data( unsigned int **data_loc, uint64_t num_items )
+std::vector<unsigned int> create_sorted_data( uint64_t num_items )
 {
-    int *data_ptr = NULL;
     uint64_t index = 0;
 
-    data_ptr = malloc( sizeof( unsigned int) * num_items );
+    std::vector<unsigned int> data_ptr( num_items );
 
     for( index = 0; index < num_items; index++ )
         {
             data_ptr[ index ] = (unsigned int) rand();
         }
 
-    qsort( data_ptr, num_items, sizeof( unsigned int ), compare_ints );
-
-    *data_loc = data_ptr;
+    std::sort( data_ptr.begin(), data_ptr.end() );
+    return data_ptr;
 }
 
 int compare_ints( const void *a, const void *b )
