@@ -13,7 +13,7 @@
 
 using namespace std;
 
-const unsigned int DEVICE_CAPACITY_GB = 16;
+const unsigned int DEVICE_CAPACITY_GB = 14;
 const unsigned int DEFAULT_NUM_ARGS   = 3; // 2 + 1, first is prog name
 const unsigned int SEED_RAND          = 42;
 
@@ -33,7 +33,9 @@ uint64_t num_items_in_gb( size_t item_size );
 std::vector<unsigned int> merge_data( std::vector<unsigned int> data,
                  unsigned int size_in_gb, unsigned int block_size
                );
-
+void transfer_items_to_device( thrust::device_vector<unsigned int> dev_D, thrust::host_vector<unsigned int> host_D,
+                               uint64_t to_transfer, uint64_t start_index
+                               );
 void verify_data_sorted( std::vector<unsigned int> data );
 
 int main( int argc, char **argv )
@@ -133,10 +135,18 @@ std::vector<unsigned int> merge_data( std::vector<unsigned int> data,
     uint64_t num_elements_trans = 0;
     uint64_t start_index        = 0;
     uint64_t end_index          = 0;
+    uint64_t base_index         = 0;
     unsigned int gb_left_to_transfer = size_in_gb;
     unsigned int gb_on_device   = 0;
+    unsigned int gb_transferred = 0;
+
+    thrust::device_vector<unsigned int> dev_unmerged( sizeof( unsigned char) * items_in_one_gb *
+                                                      ( DEVICE_CAPACITY_GB / 2 ) );
+    thrust::device_vector<unsigned int> dev_merged( sizeof( unsigned char) * items_in_one_gb *
+                                                      ( DEVICE_CAPACITY_GB / 2 ) );
 
     std::vector<unsigned int> merged_data( data.size() );
+
 
     while( gb_left_to_transfer > 0 )
         {
@@ -144,11 +154,20 @@ std::vector<unsigned int> merge_data( std::vector<unsigned int> data,
                 {
                     num_elements_trans = items_in_one_gb * min( gb_left_to_transfer, block_size ); 
 
+                    base_index = gb_transferred * items_in_one_gb - 1;
+
+                    transfer_items_to_device( dev_unmerged, data, num_elements_trans, base_index );
+
                     gb_on_device += num_elements_trans;
+
+                    gb_transferred += min( gb_left_to_transfer, block_size );
+
+                    printf( "GB transferred: %u\n", gb_transferred );
                 }
 
             gb_left_to_transfer -= gb_on_device;
             gb_on_device = 0;
+            gb_transferred = 0;
         }
 
     return merged_data;
@@ -172,4 +191,16 @@ uint64_t num_items_in_gb( size_t item_size )
 {
     const uint64_t GIGABYTE_EXPONENT = 30;
     return ( ( 1LLU << GIGABYTE_EXPONENT ) ) / item_size;
+}
+
+void transfer_items_to_device( thrust::device_vector<unsigned int> dev_D, thrust::host_vector<unsigned int> host_D,
+                               uint64_t to_transfer, uint64_t start_index
+                             )
+{
+    uint64_t index = 0;
+    for( index = start_index; index < start_index + to_transfer; index++ )
+        {
+            dev_D[ index ] = host_D[ index ];
+        }
+
 }
