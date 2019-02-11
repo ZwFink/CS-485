@@ -27,6 +27,7 @@ typedef struct command_args
 bool parse_args( int argc, char **argv, command_args_t *dest );
 int compare_ints( const void *a, const void *b );
 uint64_t calc_num_items( unsigned int max_size_gb );
+void report_time( double start_time, double end_time, const char *description );
 std::vector<unsigned int> create_sorted_data( uint64_t num_items );
 
 
@@ -35,6 +36,8 @@ int main( int argc, char **argv )
     bool correct_args = false;
     command_args_t args;
     srand( SEED_RAND );
+    double start_time = 0;
+    double end_time   = 0;
 
     uint64_t num_items = 0;
 
@@ -51,7 +54,11 @@ int main( int argc, char **argv )
     num_items = calc_num_items( args.total_data_size );
     printf( "Num of items: %" PRIu64 "\n", num_items );
 
+    start_time = omp_get_wtime();
     std::vector<unsigned int> data = create_sorted_data( num_items );
+    end_time   = omp_get_wtime();
+
+    report_time( start_time, end_time, "Time taken to sort data" );
 
     return EXIT_SUCCESS;
 }
@@ -98,4 +105,8 @@ std::vector<unsigned int> create_sorted_data( uint64_t num_items )
 int compare_ints( const void *a, const void *b )
 {
     return *(int*)a - *(int*)b;
+}
+void report_time( double start_time, double end_time, const char *description )
+{
+    printf( "%s: %f\n", description, end_time - start_time );
 }
