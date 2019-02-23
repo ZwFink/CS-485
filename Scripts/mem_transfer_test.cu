@@ -44,7 +44,7 @@ int main( int argc, char **argv )
 
 				memcpy( host_A, staging_mem, num_items * sizeof( char ) )
 
-				error_code = cudaMalloc( (char **) &dev_A, sizeof( char ) * num_items );
+				error_code = cudaMalloc( (char **) &dev_A, sizeof( char ) * num_items + 1 );
 
 				if( error_code != cudaSuccess )
 				{
@@ -56,6 +56,10 @@ int main( int argc, char **argv )
 
 				cudaDeviceSynchronize();
 				end = omp_get_wtime();
+				if( error_code != cudaSuccess )
+				{
+					cout << "Error transferring to device" << endl;
+				}
 
 				free( staging_mem );
 
