@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <inttypes.h>
+#include <cmath>
 #include <vector>
 #include <stdbool.h>
 #include <algorithm>
