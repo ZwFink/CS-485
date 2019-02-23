@@ -36,8 +36,8 @@ def main():
 
     ax = pyplot.subplot()
     ax.plot()
-    pyplot.xlabel( "Size of Transfer (in B)")
-    pyplot.ylabel( "Time to Transfer (us)")
+    pyplot.xlabel( "Size of Transfer (in MB)")
+    pyplot.ylabel( "Time to Transfer (MS)")
     pyplot.title( "Size of Transfer vs. Time to Transfer")
     ax.scatter( x_axis, y_axis )
     pyplot.show()
@@ -48,7 +48,7 @@ def get_average_time( times_list ):
     
     for current_time in times_list:
         us = current_time.strip().split( 'us' )[ 0 ]
-        us = float( us )
+        us = float( us ) 
         fixed_times.append( us )
     sum_times = sum( fixed_times )
     return sum_times / length
