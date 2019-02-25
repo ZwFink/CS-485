@@ -9,7 +9,6 @@
 #include <cstring>
 #include <iterator>
 #include "multiway.h"
-#include "tbb/concurrent_queue.h"
 
 void sortInputDataParallel( uint64_t *array, uint64_t N )
 {
