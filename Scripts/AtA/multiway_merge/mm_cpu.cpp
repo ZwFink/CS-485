@@ -10,8 +10,11 @@
 #include <iterator>
 #include "multiway.h"
 #include "tbb/concurrent_queue.h"
-#include "structs.h"
 
+void sortInputDataParallel( uint64_t *array, uint64_t N )
+{
+	__gnu_parallel::sort( array, array + N );
+}
 //this multiway merges all batches at the end
 void multiwayMergeBatches(uint64_t BATCHSIZE, int NUMBATCHES, double ** resultsFromBatches, double ** tmpBuffer)
 {
@@ -50,57 +53,6 @@ void multiwayMergeBatches(uint64_t BATCHSIZE, int NUMBATCHES, double ** resultsF
 
     return;
 }
-
-
-
-
-//Merge after some of the batches were pipelined
- void multiwayMergeBatchesAfterPipeline(uint64_t N, tbb::concurrent_queue<rangeorder> * rangeQueue, double ** resultsFromBatches, double ** tmpBuffer)
-{
-    //temp vector for output
-    // double * tmp;
-    // tmp = new double[BATCHSIZE*(uint64_t)NUMBATCHES]; 
-    // out_vect.reserve(BATCHSIZE*NUMBATCHES);
-
-    std::vector<std::pair<double *, double*> > seqs;
-
-    struct rangeorder rangesToMultiway[rangeQueue->unsafe_size()];
-
-    int sizeQueue=rangeQueue->unsafe_size();
-
-    for (uint64_t i=0; i<sizeQueue; i++)
-    {
-        struct rangeorder tmpRng;
-        rangeQueue->try_pop(tmpRng);
-        rangesToMultiway[i]=tmpRng;
-        seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(rangesToMultiway[i].rangelower),*resultsFromBatches+(rangesToMultiway[i].rangeupper)));
-    }
-
-    // seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(rangeorder[i].rangelower),*resultsFromBatches+(rangeorder[i].rangeupper)));
-    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), *tmpBuffer, N, std::less<double>(), __gnu_parallel::parallel_tag());
-
-
-
-    
-    //old with local variable
-    //std::copy(tmp,tmp+(BATCHSIZE*(uint64_t)NUMBATCHES),resultsFromBatches);
-
-    //new copy with the buffer
-    // std::copy(*tmpBuffer,*tmpBuffer+(BATCHSIZE*(uint64_t)NUMBATCHES),*resultsFromBatches);
-
-    
-    //swap pointers -- avoid copying
-    double *a= *resultsFromBatches;
-    *resultsFromBatches = *tmpBuffer;
-
-    delete a;
-
-
-    return;
-}
-
-
-
 
 //Deprecated: better to use the normal merge for pairs of batches
 
