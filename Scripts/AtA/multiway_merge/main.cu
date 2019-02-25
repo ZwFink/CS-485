@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <random>
-#include <algorithm> 
 #include <string.h>
 #include <fstream>
+#include <math.h>
 #include <iostream>
 #include <string>
-#include <math.h>
 #include <queue>
 #include <iomanip>
 #include <set>
-#include <algorithm>
+#include <algorithm> 
+#include <parallel/algorithm>
 #include <thread>
 #include <cstdint>
 #include <utility>
@@ -84,44 +84,16 @@ int main( int argc, char **argv )
 	printf("\nInput size: %lu",N);
 	printf("\nBatch size: %lu",BATCHSIZE);
 
-	
-	
-		
+    uint64_t *input = malloc( sizeof( uint64_t ) * N );
 
-	//we set the range to be 2*N so that we don't get many duplicates, and this increases the chances that
-	//a search traverses to the lowest level of the tree
-	
-	//rng for the keys
-	std::mt19937 gen(seed); 
-	//transform the randomly generated numbers into uniform distribution of ints
-	std::uniform_int_distribution<uint64_t> dis(0, N);
-	
-
-	
-	//input to search
-	uint64_t *input;
-	input = new uint64_t[N];
-
-	// result array:
-	uint64_t *result;
-	result = new uint64_t[N];	
-	
-
-	for (uint64_t i=0; i<N; i++)
-	{
-		input[i]=dis(gen);
-	}
-
-	printf("\nTotal size of input sorted array (MiB): %f",((double)N*(sizeof(uint64_t)))/(1024.0*1024.0));
-	printf("\nTotal size of result set array (MiB): %f",((double)N*(sizeof(uint64_t)))/(1024.0*1024.0));
-
-	
+    printf("\nTotal size of input sorted array (MiB): %f",((double)N*(sizeof(uint64_t)))/(1024.0*1024.0));
 
 	//sort input array in parallel
 	double tstartsort=omp_get_wtime();
 	sortInputDataParallel(input, N);
+    generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort=omp_get_wtime();
-	printf("\nTime to sort the input array in parallel (not part of performance measurements): %f",tendsort - tstartsort);
+	printf("\nTime to create K sorted sublists (not part of performance measurements): %f",tendsort - tstartsort);
 	
 	//start hybrid CPU+GPU total time timer
 	double tstarthybrid=omp_get_wtime();
@@ -140,6 +112,6 @@ int main( int argc, char **argv )
 	printf("\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches);
 	assert((numCPUBatches+numGPUBatches)==(input_offsets.size()-1));
 	
-
+    free( input );
 	return EXIT_SUCCESS;
 }
