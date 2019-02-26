@@ -1,7 +1,7 @@
 #GPU.cu 
 SOURCES = main.cu mm_cpu.cpp mm_gpu.cu mm_cpu.h mm_gpu.h mm_utility.h
-OBJECTS = mm_cpu.o 
-CUDAOBJECTS = mm_gpu.o mm_utility.o main.o 
+OBJECTS = mm_cpu.o mm_utility.o
+CUDAOBJECTS = mm_gpu.o main.o 
 CC = nvcc
 EXECUTABLE = main
 
@@ -33,9 +33,6 @@ main.o: main.cu
 	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) main.cu 
 mm_gpu.o: mm_gpu.cu mm_gpu.h
 	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) mm_gpu.cu
-mm_utility.o: mm_utility.cu mm_utility.h
-	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) mm_utility.cu
-
 
 $(EXECUTABLE): $(OBJECTS) $(CUDAOBJECTS)
 	$(CC) $(FLAGS) $^ -o $@
