@@ -102,10 +102,10 @@
 
 void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint8_t k )
 {
-    uint64_t batch_index  = 0;
+    uint64_t outer_index  = 0;
     uint64_t num_sublists = 0;
-    uint64_t inner_index  = 0;
     uint64_t batch_size   = 0;
+    uint64_t batch_index  = 0;
 
 	//rng for the keys
 	std::mt19937 gen(seed); 
@@ -115,13 +115,10 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
     num_sublists = k;
     batch_size   = total_elements / num_sublists;
 
-	for( batch_index = 0; batch_index < num_sublists; ++batch_index )
+	for( outer_index = 0; outer_index < total_elements; ++outer_index )
 	{
-        for( inner_index = 0; inner_index < batch_size; ++inner_index )
-            {
-                base_ptr[ ( batch_index * batch_size ) + inner_index ] = dis( gen );
-            }
-	}
+        base_ptr[ outer_index ] = dis( gen );
+    }
 
     for( batch_index = 0; batch_index < num_sublists; ++batch_index )
         {
