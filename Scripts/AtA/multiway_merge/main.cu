@@ -11,7 +11,6 @@
 #include <iomanip>
 #include <set>
 #include <algorithm> 
-#include <parallel/algorithm>
 #include <thread>
 #include <cstdint>
 #include <utility>
@@ -84,7 +83,7 @@ int main( int argc, char **argv )
 	printf("\nInput size: %lu",N);
 	printf("\nBatch size: %lu",BATCHSIZE);
 
-    uint64_t *input = malloc( sizeof( uint64_t ) * N );
+    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N );
 
     printf("\nTotal size of input sorted array (MiB): %f",((double)N*(sizeof(uint64_t)))/(1024.0*1024.0));
 
