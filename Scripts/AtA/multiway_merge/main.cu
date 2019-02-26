@@ -89,9 +89,9 @@ int main( int argc, char **argv )
 
 	//sort input array in parallel
 	double tstartsort=omp_get_wtime();
-	sortInputDataParallel(input, N);
     generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort=omp_get_wtime();
+
 	printf("\nTime to create K sorted sublists (not part of performance measurements): %f",tendsort - tstartsort);
 	
 	//start hybrid CPU+GPU total time timer
@@ -102,14 +102,17 @@ int main( int argc, char **argv )
 	//The input batch size is thus an approximation
 	std::vector<uint64_t> input_offsets;
 	uint64_t max_input_batch_size=0;
+
+    // commented out for now
+
 	//compute_batches( N, input, &input_offsets, BATCHSIZE, &max_input_batch_size );
+	/**split the data between CPU and GPU for hybrid searches
+	 unsigned int numCPUBatches=(input_offsets.size()-1)*CPUFRAC;
+	 unsigned int numGPUBatches=(input_offsets.size()-1)-numCPUBatches;
 
-	//split the data between CPU and GPU for hybrid searches
-	unsigned int numCPUBatches=(input_offsets.size()-1)*CPUFRAC;
-	unsigned int numGPUBatches=(input_offsets.size()-1)-numCPUBatches;
-
-	printf("\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches);
-	assert((numCPUBatches+numGPUBatches)==(input_offsets.size()-1));
+     printf("\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches);
+     assert((numCPUBatches+numGPUBatches)==(input_offsets.size()-1));
+    **/
 	
     free( input );
 	return EXIT_SUCCESS;
