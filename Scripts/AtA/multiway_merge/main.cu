@@ -49,10 +49,10 @@ int main( int argc, char **argv )
 	
 	//Read in parameters from file:
 	//dataset filename and cluster instance file
-	if (argc!=5)
+	if ( argc != 5 )
 	{
 		printf( "\n\nIncorrect number of input parameters.  \nShould include a seed for the random number generator, "
-				"the number of elements, N, the number of sublists, K, and the batch size\n"
+				"the number of elements, N, the batch size, and the number of lists, K\n"
 		      );
 		return 0;
 	}
@@ -77,22 +77,23 @@ int main( int argc, char **argv )
 	// uint64_t BATCHSIZE=atoi(inputBatchSize);
 	uint64_t BATCHSIZE = strtoull(inputBatchSize, NULL, 0);
 
-	uint8_t K = argv[ 4 ][ 0 ];
+	uint16_t K = strtoul( argv[ 4 ], NULL, 0 );
 
 	printf("\nSeed for random number generator: %d",seed);
 	printf("\nInput size: %lu",N);
 	printf("\nBatch size: %lu",BATCHSIZE);
+    printf( "K (number of sublists): %u\n", K );
 
-    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N );
+    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N * K );
 
-    printf("\nTotal size of input sorted array (MiB): %f",((double)N*(sizeof(uint64_t)))/(1024.0*1024.0));
+    printf("\nTotal size of input sorted array (MiB): %f",((double)N*K*(sizeof(uint64_t)))/(1024.0*1024.0));
 
 	//sort input array in parallel
 	double tstartsort=omp_get_wtime();
     generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort=omp_get_wtime();
 
-	printf("\nTime to create K sorted sublists (not part of performance measurements): %f",tendsort - tstartsort);
+	printf("\nTime to create K sorted sublists (not part of performance measurements): %f\n",tendsort - tstartsort);
 	
 	//start hybrid CPU+GPU total time timer
 	double tstarthybrid=omp_get_wtime();
