@@ -39,11 +39,15 @@ $(EXECUTABLE): $(OBJECTS) $(CUDAOBJECTS)
 
 
 
+.PHONY: debug clean
+debug: clean
+debug: FLAGS +=-g -O0
+debug: main
 
 clean:
-	# rm $(OBJECTS)
-	rm $(CUDAOBJECTS)
-	rm main
+	rm -f $(OBJECTS)
+	rm -f $(CUDAOBJECTS)
+	rm -f main
 
 
 
