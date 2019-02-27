@@ -126,3 +126,17 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
                                 );
         }
 }
+
+
+void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k )
+{
+    uint64_t index = 0;
+    uint64_t sublist_size = num_elements / k;
+
+    uint64_t breakpoints_index[ k ];
+
+    for( index = 0; index < k; index++ )
+        {
+            breakpoints[ index ] = &input[ index * sublist_size ];
+        }
+}

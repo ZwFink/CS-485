@@ -97,6 +97,10 @@ int main( int argc, char **argv )
 	
 	//start hybrid CPU+GPU total time timer
 	double tstarthybrid=omp_get_wtime();
+
+    uint64_t *list_one_breakpoints[ K  ];
+
+    find_list_breakpoints( input, N, list_one_breakpoints, K );
 	
 	//compute the number of batches	
 	//The number of batches should ensure that the input dataset is split at one point

@@ -2,5 +2,5 @@
 #define MULTIWAY_UTILITY_H_INCLUDED 
 
 void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k );
-
+void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k );
 #endif // MULTIWAY_UTILITY_H_INCLUDED 
