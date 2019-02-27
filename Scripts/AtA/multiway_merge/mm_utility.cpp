@@ -107,22 +107,22 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
     uint64_t batch_index  = 0;
     uint64_t total_index  = 0;
 
-    uint64_t total_elements_all_lists = total_elements * k;
+    uint64_t elements_per_list = total_elements / k;
 
 	//rng for the keys
 	std::mt19937 gen(seed); 
 	//transform the randomly generated numbers into uniform distribution of ints
-	std::uniform_int_distribution<uint64_t> dis(0, total_elements_all_lists );
+	std::uniform_int_distribution<uint64_t> dis(0, total_elements );
 
-	for( outer_index = 0; outer_index < total_elements_all_lists; ++outer_index )
+	for( outer_index = 0; outer_index < total_elements; ++outer_index )
 	{
         base_ptr[ outer_index ] = dis( gen );
     }
 
     for( batch_index = 0; batch_index < k; ++batch_index )
         {
-            __gnu_parallel::sort( base_ptr + ( batch_index * total_elements ),
-                                  base_ptr + ( batch_index * total_elements ) + total_elements
+            __gnu_parallel::sort( base_ptr + ( batch_index * elements_per_list ),
+                                  base_ptr + ( batch_index * elements_per_list ) + elements_per_list - 1
                                 );
         }
 }

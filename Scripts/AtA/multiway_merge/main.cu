@@ -81,12 +81,12 @@ int main( int argc, char **argv )
 
 	printf("\nSeed for random number generator: %d",seed);
 	printf("\nInput size: %lu",N);
-	printf("\nBatch size: %lu",BATCHSIZE);
+	printf("\nBatch size: %lu\n",BATCHSIZE);
     printf( "K (number of sublists): %u\n", K );
 
-    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N * K );
+    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N );
 
-    printf("\nTotal size of input sorted array (MiB): %f",((double)N*K*(sizeof(uint64_t)))/(1024.0*1024.0));
+    printf("\nTotal size of input sorted array (MiB): %f",((double) N * (sizeof(uint64_t)))/(1024.0*1024.0));
 
 	//sort input array in parallel
 	double tstartsort=omp_get_wtime();
