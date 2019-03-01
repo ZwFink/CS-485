@@ -128,15 +128,15 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
 }
 
 
-void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k )
+void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k, uint64_t batch_size )
 {
     uint64_t index = 0, pivot_val = 0, start_index = 0;
     uint64_t sublist_size = num_elements / k;
 
-    uint64_t breakpoints_index[ k ];
+    //uint64_t breakpoints_index[ k ];
    
-    // use batch size to find pivot value?
-    pivot_val = input[ BATCH_SIZE ];
+    // use batch size to find pivot value
+    pivot_val = input[ batch_size ];
 
     // commented out for now
     /*for( index = 0; index < k; index++ )
@@ -149,7 +149,7 @@ void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **b
     {
         start_index = index * sublist_size;
         
-        breakpoints_index[ index ] = find_breakpoint( input, start_index, sublist_size, pivot_val );    
+        breakpoints[ index ] = find_breakpoint( input, start_index, sublist_size, pivot_val );    
         
     }
 }

@@ -75,13 +75,13 @@ int main( int argc, char **argv )
 	uint64_t N = strtoull(inputN, NULL, 0);
 
 	// uint64_t BATCHSIZE=atoi(inputBatchSize);
-	uint64_t BATCHSIZE = strtoull(inputBatchSize, NULL, 0);
+	uint64_t BATCH_SIZE = strtoull(inputBatchSize, NULL, 0);
 
 	uint16_t K = strtoul( argv[ 4 ], NULL, 0 );
 
 	printf("\nSeed for random number generator: %d",seed);
 	printf("\nInput size: %lu",N);
-	printf("\nBatch size: %lu\n",BATCHSIZE);
+	printf("\nBatch size: %lu\n",BATCH_SIZE);
     printf( "K (number of sublists): %u\n", K );
 
     uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N );
@@ -100,7 +100,7 @@ int main( int argc, char **argv )
 
     uint64_t *list_one_breakpoints[ K ];
 
-    find_list_breakpoints( input, N, list_one_breakpoints, K );
+    find_list_breakpoints( input, N, list_one_breakpoints, K, BATCH_SIZE );
 	
 	//compute the number of batches	
 	//The number of batches should ensure that the input dataset is split at one point
