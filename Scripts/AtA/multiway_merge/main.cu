@@ -98,7 +98,7 @@ int main( int argc, char **argv )
 	//start hybrid CPU+GPU total time timer
 	double tstarthybrid=omp_get_wtime();
 
-    uint64_t *list_one_breakpoints[ K  ];
+    uint64_t *list_one_breakpoints[ K ];
 
     find_list_breakpoints( input, N, list_one_breakpoints, K );
 	

@@ -110,7 +110,7 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
     uint64_t elements_per_list = total_elements / k;
 
 	//rng for the keys
-	std::mt19937 gen(seed); 
+	std::mt19937 gen( seed ); 
 	//transform the randomly generated numbers into uniform distribution of ints
 	std::uniform_int_distribution<uint64_t> dis(0, total_elements );
 
@@ -130,13 +130,53 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
 
 void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k )
 {
-    uint64_t index = 0;
+    uint64_t index = 0, pivot_val = 0, start_index = 0;
     uint64_t sublist_size = num_elements / k;
 
     uint64_t breakpoints_index[ k ];
+   
+    // use batch size to find pivot value?
+    pivot_val = input[ BATCH_SIZE ];
+
+    // commented out for now
+    /*for( index = 0; index < k; index++ )
+    {
+        breakpoints[ index ] = &input[ index * sublist_size ];
+    }
+    */
 
     for( index = 0; index < k; index++ )
-        {
-            breakpoints[ index ] = &input[ index * sublist_size ];
-        }
+    {
+        start_index = index * sublist_size;
+        
+        breakpoints_index[ index ] = find_breakpoint( input, start_index, sublist_size, pivot_val );    
+        
+    }
 }
+
+
+uint64_t find_breakpoint( uint64_t *input, uint64_t start_index, uint64_t sublist_size, uint64_t pivot_val )
+{
+    uint64_t index = 0;
+    
+    for( index = start_index, index < sublist_size, index++ )
+    {
+        if( input[ index ] > pivot_val )
+        {
+            return index - 1;
+        }
+    }
+
+    return index - 1;
+
+} 
+
+
+
+
+
+
+
+
+
+
