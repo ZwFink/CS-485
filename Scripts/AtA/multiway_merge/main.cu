@@ -118,11 +118,11 @@ int main( int argc, char **argv )
 	compute_batches( sublist_size, input, &first_sublist_offsets, BATCH_SIZE );
 	
     // split the data between CPU and GPU for hybrid searches
-	unsigned int numCPUBatches = ( input_offsets.size() - 1 ) * CPUFRAC;
-	unsigned int numGPUBatches = ( input_offsets.size() - 1 ) - numCPUBatches;
+	unsigned int numCPUBatches = ( first_sublist_offsets.size() - 1 ) * CPUFRAC;
+	unsigned int numGPUBatches = ( first_sublist_offsets.size() - 1 ) - numCPUBatches;
 
     printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
-    assert( (numCPUBatches + numGPUBatches) == (input_offsets.size() - 1) );
+    assert( (numCPUBatches + numGPUBatches) == (first_sublist_offsets.size() - 1) );
 	
 
     #pragma omp parallel sections
