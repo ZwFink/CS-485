@@ -27,78 +27,72 @@
 #include "omp.h"
 #include "mm_utility.h"
 
-// void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize, uint64_t *max_input_batch_size );
-// {
+void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize )
+{
+    uint64_t index = 0, offset_index = 0;
+    uint64_t *val;
+
+	uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
+	//given the input batch size and N, recompute the batch size (apporximate)
+	uint64_t batchSizeApprox = N / numBatches;
+
+	printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
+
+	//split the input array based on the approximate batch size
+
+	// the first offset is index 0
+	batch_offsets->push_back( offset_index );
+
+	// -1 because the last offset is the end of the array N-1
+	for( index = 0; index < numBatches - 1 ; index++ )
+    {
+		*val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
+		
+        offset_index  = std::distance( input, val );	
+		
+        batch_offsets->push_back( offset_index );
+	}
+
+	batch_offsets->push_back( N );
+}
+
+// compute_offsets( input, first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
+
+void compute_offsets( uint64_t *input, std::vector<uint64_t> *batch_offsets, 
+                                std::vector<uint64_t> *offset_list, uint64_t batch_index, 
+                                                            uint16_t k, uint64_t sublist_size )
+{
+    uint64_t index = 0, offset_index = 0, start_index = 0;
+    uint64_t *pivot_val;
+    uint64_t *val;
 
 
+    offset_list->push_back( batch_offsets[ batch_index ] ); 
 
-// 	//search the middle element
-// 	// uint64_t *val=std::upper_bound(input, input+N, input[N/2]);
-// 	// uint64_t distance=thrust::distance(input,val);	
-// 	// uint64_t idx=distance;
-// 	// printf("\nInput/2: %lu, idx: %lu",input[N/2], idx);
+    // find the pivot value
+    *pivot_val = input[ offset_list[ 0 ] ];
 
-	
-// 	uint64_t numBatches=ceil(N*1.0/inputBatchSize*1.0);
-// 	//given the input batch size and N, recompute the batch size (apporximate)
-// 	uint64_t batchSizeApprox=N/numBatches;
+    // Now find the remaining offsets in each sublist
+    // starting from the second sublist since we already
+    // found the offset for the first sublist
+    for( index = 1; index < k; index++ )
+    {
+        start_index = index * sublist_size;
+        
+        *val = std::upper_bound( 
+                                 input + start_index, 
+                                 input + ( start_index + (sublist_size - 1) ), 
+                                 *pivot_val 
+                               );
 
-// 	printf("\nNum batches: %lu, Approx. batch size: %lu",numBatches, batchSizeApprox);
+	    offset_index = thrust::distance( input, val );
 
-// 	//split the input array based on the approximate batch size
-
-
-
-// 	//the first offset is index 0
-// 	batch_offsets->push_back(0);
-// 	//-1 because the last offset is the end of the array N-1
-// 	for (uint64_t i=0; i<numBatches-1; i++){
-// 		uint64_t *val=std::upper_bound(input, input+N, input[(i+1)*batchSizeApprox]);
-// 		uint64_t distance=thrust::distance(input,val);	
-// 		uint64_t idx=distance;
-// 		printf("\nInput: %lu, idx (upper bound): %lu",input[(i+1)*batchSizeApprox], idx);
-// 		batch_offsets->push_back(idx);
-// 	}
-
-// 	batch_offsets->push_back(N);
-
-// 	//split the search array based on the values in the input array
-// 	//the search array is further split later into batches
-// 	search_offsets->push_back(0);
-	
-
-// 	for (uint64_t i=0; i<numBatches-1; i++){
-// 		uint64_t *val=std::upper_bound(search, search+N, input[(i+1)*batchSizeApprox]);
-// 		uint64_t distance=thrust::distance(search,val);	
-// 		uint64_t idx=distance;
-// 		printf("\nInput: %lu, search: %lu, idx (upper bound): %lu",input[(i+1)*batchSizeApprox], search[idx], idx);
-// 		search_offsets->push_back(idx);
-// 	}	
-
-// 	search_offsets->push_back(N);
-
-
-// 	//compute max batch sizes for input and search arrays to be allocated
-// 	uint64_t max_input=0;
-// 	uint64_t max_search=0;
-
-// 	for (uint64_t i=0; i<batch_offsets->size()-1; i++){
-// 		printf("\nSize input batch: val: %lu", (*batch_offsets)[i+1]-(*batch_offsets)[i]);
-// 		max_input=std::max(max_input,(*batch_offsets)[i+1]-(*batch_offsets)[i]);
-
-// 		printf("\nSize search batch: %lu", (*search_offsets)[i+1]-(*search_offsets)[i]);
-// 		max_search= std::max(max_search,(*search_offsets)[i+1]-(*search_offsets)[i]);
-// 	}
-
-// 	printf("\nMax input batch size: %lu, Max search batch size: %lu", max_input, max_search);
-
-// 	*max_input_batch_size=max_input;
-// 	*max_search_batch_size=max_search;
-
-
-
-
-// }
+  	    offset_list->push_back( offset_index );
+        
+        printf("\nInput: %lu, offset_index (upper bound): %lu", 
+                                    val, offset_index );
+    }
+}
 
 void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k )
 {
@@ -128,54 +122,28 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
 }
 
 
-void find_list_breakpoints( uint64_t *input, uint64_t num_elements, uint64_t **breakpoints, uint16_t k, uint64_t batch_size )
+// set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
+void set_beginning_of_offsets( std::vector<uint64_t> begin_offset_list, uint64_t sublist_size, uint16_t k )
 {
-    uint64_t index = 0, pivot_val = 0, start_index = 0;
-    uint64_t sublist_size = num_elements / k;
-
-    //uint64_t breakpoints_index[ k ];
-   
-    // use batch size to find pivot value
-    pivot_val = input[ batch_size ];
-
-    // commented out for now
-    /*for( index = 0; index < k; index++ )
-    {
-        breakpoints[ index ] = &input[ index * sublist_size ];
-    }
-    */
+    uint64_t index = 0;
 
     for( index = 0; index < k; index++ )
     {
-        start_index = index * sublist_size;
-        
-        breakpoints[ index ] = find_breakpoint( input, start_index, sublist_size, pivot_val );    
-        
+        begin_offset_list->push_back( index * sublist_size );
     }
 }
 
 
-uint64_t find_breakpoint( uint64_t *input, uint64_t start_index, uint64_t sublist_size, uint64_t pivot_val )
+// get_offset_beginning( offset_list_cpu, &offset_begin_gpu );
+void get_offset_beginning( std::vector<uint64_t> offset_list, std::vector<uint64_t> begin_list )
 {
-    uint64_t index = 0;
-    
-    for( index = start_index, index < sublist_size, index++ )
+    uint64_t index;
+
+    for( index = 0; index < offset_list.size(); index++ )
     {
-        if( input[ index ] > pivot_val )
-        {
-            return index - 1;
-        }
+        begin_list->push_back( offset_list[ index ] );
     }
-
-    return index - 1;
-
 } 
-
-
-
-
-
-
 
 
 

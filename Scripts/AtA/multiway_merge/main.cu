@@ -60,65 +60,130 @@ int main( int argc, char **argv )
 	//copy parameters from commandline:
 	//char inputFname[]="data/test_data_removed_nan.txt";	
 	
-	char inputseed[500];
-	strcpy(inputseed,argv[1]);
+	char inputseed[ 500 ];
+	strcpy( inputseed, argv[ 1 ] );
 
-	char inputN[500];
-	strcpy(inputN,argv[2]);
+	char inputN[ 500 ];
+	strcpy( inputN, argv[ 2 ] );
 
-	char inputBatchSize[500];
-	strcpy(inputBatchSize,argv[3]);
+	char inputBatchSize[ 500 ];
+	strcpy( inputBatchSize, argv[ 3 ] );
 	
-	unsigned int seed=atoi(inputseed);
+	unsigned int seed = atoi( inputseed );
 	
 	// uint64_t N=atoi(inputN);
-	uint64_t N = strtoull(inputN, NULL, 0);
+	uint64_t N = strtoull( inputN, NULL, 0 );
 
-	// uint64_t BATCHSIZE=atoi(inputBatchSize);
-	uint64_t BATCH_SIZE = strtoull(inputBatchSize, NULL, 0);
+	uint64_t BATCH_SIZE = strtoull( inputBatchSize, NULL, 0 );
 
 	uint16_t K = strtoul( argv[ 4 ], NULL, 0 );
 
-	printf("\nSeed for random number generator: %d",seed);
-	printf("\nInput size: %lu",N);
-	printf("\nBatch size: %lu\n",BATCH_SIZE);
+    uint64_t sublist_size = N / K;
+
+	printf( "\nSeed for random number generator: %d", seed );
+	printf( "\nInput size: %lu", N );
+	printf( "\nBatch size: %lu\n", BATCH_SIZE );
     printf( "K (number of sublists): %u\n", K );
 
-    uint64_t *input = (uint64_t*) malloc( sizeof( uint64_t ) * N );
+    // offset vectors
+	std::vector<uint64_t> first_sublist_offsets;
+    std::vector<uint64_t> offset_list_cpu;
+    std::vector<uint64_t> offset_list_gpu;
+    std::vector<uint64_t> offset_begin_cpu;
+    std::vector<uint64_t> offset_begin_gpu;
 
-    printf("\nTotal size of input sorted array (MiB): %f",((double) N * (sizeof(uint64_t)))/(1024.0*1024.0));
 
-	//sort input array in parallel
-	double tstartsort=omp_get_wtime();
+    uint64_t *input = (uint64_t *) malloc( sizeof( uint64_t ) * N );
+
+    printf( "\nTotal size of input sorted array (MiB): %f", ((double) N * (sizeof(uint64_t)))/(1024.0*1024.0) );
+
+    // Generate sorted sublists 
+	double tstartsort = omp_get_wtime();
     generate_k_sorted_sublists( input, N, seed, K );
-	double tendsort=omp_get_wtime();
+	double tendsort = omp_get_wtime();
 
-	printf("\nTime to create K sorted sublists (not part of performance measurements): %f\n",tendsort - tstartsort);
+	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
 	
-	//start hybrid CPU+GPU total time timer
-	double tstarthybrid=omp_get_wtime();
+    //============================================================
+    //========== Begin Hybrid CPU/GPU multiway merge =============
+    //============================================================
 
-    uint64_t *list_one_breakpoints[ K ];
+	//start hybrid CPU + GPU total time timer
+	double tstarthybrid = omp_get_wtime();
+    
+    // compute the number of batches
+	// The number of batches should ensure that the input dataset is split at one point
+	// The input batch size is thus an approximation
 
-    find_list_breakpoints( input, N, list_one_breakpoints, K, BATCH_SIZE );
+	compute_batches( sublist_size, input, &first_sublist_offsets, BATCH_SIZE );
 	
-	//compute the number of batches	
-	//The number of batches should ensure that the input dataset is split at one point
-	//The input batch size is thus an approximation
-	std::vector<uint64_t> input_offsets;
-	uint64_t max_input_batch_size=0;
+    // split the data between CPU and GPU for hybrid searches
+	unsigned int numCPUBatches = ( input_offsets.size() - 1 ) * CPUFRAC;
+	unsigned int numGPUBatches = ( input_offsets.size() - 1 ) - numCPUBatches;
 
-    // commented out for now
-
-	//compute_batches( N, input, &input_offsets, BATCHSIZE, &max_input_batch_size );
-	/**split the data between CPU and GPU for hybrid searches
-	 unsigned int numCPUBatches=(input_offsets.size()-1)*CPUFRAC;
-	 unsigned int numGPUBatches=(input_offsets.size()-1)-numCPUBatches;
-
-     printf("\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches);
-     assert((numCPUBatches+numGPUBatches)==(input_offsets.size()-1));
-    **/
+    printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
+    assert( (numCPUBatches + numGPUBatches) == (input_offsets.size() - 1) );
 	
+
+    #pragma omp parallel sections
+    {
+        
+      // BEGIN CPU SECTION        
+      #pragma omp section
+      {
+        for( cpu_index = 1; cpu_index < numCPUBatches; ++cpu_index )
+        {
+            if( offset_list_cpu.size() == 0 )
+            {
+                set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
+            }
+
+            else // copy over indices from offset_list to offset_begin
+            {
+                get_offset_beginning( offset_list_cpu, &offset_begin_cpu );
+                
+                offset_list_cpu.clear();
+            }
+
+            // find offset_list_cpu 
+            compute_offsets( input, first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
+    
+            // merge this round of batches
+            // multiwayMerge( sublist_size, K, input, offset_list_cpu );
+
+            // clear offset_list and offset_begin
+            offset_begin_cpu.clear();
+        }
+
+      }
+            
+      // BEGIN GPU SECTION
+      #pragma omp section
+      {
+        for( gpu_index = numCPUBatches; gpu_index < numGPUBatches; ++gpu_index )
+        {
+            // #pragma omp parallel for
+            for( index = 0; index < K, index++ )
+            {
+
+            }
+        }
+
+      }
+
+    }
+
+
+
+    // end hybrid CPU + GPU total time timer
+	double tendhybrid = omp_get_wtime();
+
     free( input );
+
 	return EXIT_SUCCESS;
+
+
+
+
+
 }

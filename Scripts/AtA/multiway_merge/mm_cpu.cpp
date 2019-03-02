@@ -1,4 +1,3 @@
-
 #include <vector>
 #include <utility>
 #include <cstdint>
@@ -14,24 +13,29 @@ void sortInputDataParallel( uint64_t *array, uint64_t N )
 {
 	__gnu_parallel::sort( array, array + N );
 }
+
+
 //this multiway merges all batches at the end
-void multiwayMergeBatches(uint64_t BATCHSIZE, int NUMBATCHES, double ** resultsFromBatches, double ** tmpBuffer)
+void multiwayMergeBatches( uint64_t sublist_size, int k, std::vector<uint64_t> offset_list, double **resultsFromBatches, double **tmpBuffer )
 {
+    uint64_t index;
+
     //temp vector for output
     // double * tmp;
     // tmp = new double[BATCHSIZE*(uint64_t)NUMBATCHES]; 
     // out_vect.reserve(BATCHSIZE*NUMBATCHES);
 
-    std::vector<std::pair<double *, double*> > seqs;
+    std::vector< std::pair<double *, double*> > seqs;
 
-    for (uint64_t i=0; i<NUMBATCHES; i++)
+    for ( index = 0; index < NUMBATCHES; index++ )
     {
         // seqs.push_back(std::make_pair<double*,double* >(resultsFromBatches+(i*BATCHSIZE),resultsFromBatches+((i+1)*BATCHSIZE)));
-        seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(i*BATCHSIZE),*resultsFromBatches+((i+1)*BATCHSIZE)));
+        seqs.push_back( std::make_pair< double *, double * >( *resultsFromBatches + ( index * BATCHSIZE ),
+                                                              *resultsFromBatches + ( (index + 1) * BATCHSIZE ) ) );
     }
 
-    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), *tmpBuffer, BATCHSIZE*NUMBATCHES, std::less<double>(), __gnu_parallel::parallel_tag());
-
+    __gnu_parallel::multiway_merge( seqs.begin(), seqs.end(), *tmpBuffer, BATCHSIZE * NUMBATCHES, 
+                                                  std::less<double>(), __gnu_parallel::parallel_tag() );
 
 
     
@@ -52,6 +56,7 @@ void multiwayMergeBatches(uint64_t BATCHSIZE, int NUMBATCHES, double ** resultsF
 
     return;
 }
+
 
 //Deprecated: better to use the normal merge for pairs of batches
 
