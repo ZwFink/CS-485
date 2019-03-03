@@ -7,35 +7,39 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
-#include "multiway.h"
-
-void sortInputDataParallel( uint64_t *array, uint64_t N )
-{
-	__gnu_parallel::sort( array, array + N );
-}
+#include "mm_cpu.h"
 
 
+// multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
 //this multiway merges all batches at the end
-void multiwayMergeBatches( uint64_t sublist_size, int k, std::vector<uint64_t> offset_list, double **resultsFromBatches, double **tmpBuffer )
+void multiwayMerge( uint64_t **inputArr, 
+                    uint64_t **tmpBuffer, uint64_t start_index, 
+                    uint64_t sublist_size, uint64_t k, 
+                    std::vector<uint64_t> offset_begin, std::vector<uint64_t> offset_end )
 {
-    uint64_t index;
+    uint64_t index, begin, end, total_size = 0;
 
     //temp vector for output
-    // double * tmp;
-    // tmp = new double[BATCHSIZE*(uint64_t)NUMBATCHES]; 
+    // uint64_t * tmp;
+    // tmp = new uint64_t[BATCHSIZE*(uint64_t)NUMBATCHES]; 
     // out_vect.reserve(BATCHSIZE*NUMBATCHES);
 
-    std::vector< std::pair<double *, double*> > seqs;
+    std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
 
-    for ( index = 0; index < NUMBATCHES; index++ )
+    for ( index = 0; index < k; index++ )
     {
-        // seqs.push_back(std::make_pair<double*,double* >(resultsFromBatches+(i*BATCHSIZE),resultsFromBatches+((i+1)*BATCHSIZE)));
-        seqs.push_back( std::make_pair< double *, double * >( *resultsFromBatches + ( index * BATCHSIZE ),
-                                                              *resultsFromBatches + ( (index + 1) * BATCHSIZE ) ) );
+        begin = offset_begin[ index ];
+        end = offset_end[ index ];
+        
+        // compute total size to merge
+        total_size = total_size + ( begin - end );        
+
+        seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + begin, *inputArr + end ) );
     }
 
-    __gnu_parallel::multiway_merge( seqs.begin(), seqs.end(), *tmpBuffer, BATCHSIZE * NUMBATCHES, 
-                                                  std::less<double>(), __gnu_parallel::parallel_tag() );
+    __gnu_parallel::multiway_merge( seqs.begin(), seqs.end(), 
+                                    *tmpBuffer + start_index, total_size, 
+                                    std::less<uint64_t>(), __gnu_parallel::parallel_tag() );
 
 
     
@@ -47,10 +51,10 @@ void multiwayMergeBatches( uint64_t sublist_size, int k, std::vector<uint64_t> o
 
     
     //swap pointers -- avoid copying
-    double *a= *resultsFromBatches;
-    *resultsFromBatches = *tmpBuffer;
+    uint64_t *a = *inputArr;
+    // *inputArr + start_index = *tmpBuffer + start_index;
 
-    //delte memory at end
+    //delete memory at end
     // delete a;
 
 
@@ -61,9 +65,9 @@ void multiwayMergeBatches( uint64_t sublist_size, int k, std::vector<uint64_t> o
 //Deprecated: better to use the normal merge for pairs of batches
 
 //this one merges give sets of ranges of the batches, e.g., [50,100) [100,150)
-// void mergeConsumerMultiwayWithRanges(double * resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2 )
+// void mergeConsumerMultiwayWithRanges(uint64_t * resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2 )
 
-void mergeConsumerMultiwayWithRanges(double ** resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2)
+void mergeConsumerMultiwayWithRanges(uint64_t ** resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2)
 {
     
 
@@ -80,23 +84,23 @@ void mergeConsumerMultiwayWithRanges(double ** resultsFromBatches, uint64_t lowe
     //tmp vector:
     //not in place:
     
-    double * tmpBuffer;
+    uint64_t * tmpBuffer;
 
     uint64_t distance = upper2 - lower1;
 
-    std::vector<std::pair<double *, double*> > seqs;
+    std::vector<std::pair<uint64_t *, uint64_t*> > seqs;
 
 
-    seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(lower1),*resultsFromBatches+(upper1)));
-    seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(lower2),*resultsFromBatches+(upper2)));
+    seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(lower1),*resultsFromBatches+(upper1)));
+    seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(lower2),*resultsFromBatches+(upper2)));
     
 
-    tmpBuffer=new double[distance];
+    tmpBuffer=new uint64_t[distance];
 
     printf("\nDistance in merge consumer multiway: %lu",distance);
 
-    // __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), *tmpBuffer, distance, std::less<double>(), __gnu_parallel::parallel_tag());
-    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), tmpBuffer, distance, std::less<double>(), __gnu_parallel::parallel_tag());
+    // __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), *tmpBuffer, distance, std::less<uint64_t>(), __gnu_parallel::parallel_tag());
+    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), tmpBuffer, distance, std::less<uint64_t>(), __gnu_parallel::parallel_tag());
 
 
     std::copy(tmpBuffer,tmpBuffer+ distance,*resultsFromBatches+lower1);
@@ -104,11 +108,11 @@ void mergeConsumerMultiwayWithRanges(double ** resultsFromBatches, uint64_t lowe
     delete [] tmpBuffer;
     
 
-     // std::vector<std::pair<double *, double*> > seqs;
+     // std::vector<std::pair<uint64_t *, uint64_t*> > seqs;
     
     // for (uint64_t i=0; i<2; i++){
-        // seqs.push_back(std::make_pair<double*,double* >(resultsFromBatches+(i*BATCHSIZE),resultsFromBatches+((i+1)*BATCHSIZE)));
-        // seqs.push_back(std::make_pair<double*,double* >(*resultsFromBatches+(i*BATCHSIZE),*resultsFromBatches+((i+1)*BATCHSIZE)));
+        // seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(resultsFromBatches+(i*BATCHSIZE),resultsFromBatches+((i+1)*BATCHSIZE)));
+        // seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(i*BATCHSIZE),*resultsFromBatches+((i+1)*BATCHSIZE)));
     // }
 
     
@@ -146,19 +150,19 @@ void testMultiwayMerge()
  //    sequences[0][0]=1;
 
  
-    printf("\nAllocating memory for multiway merging (GiB): %f",(NUM_ELEM*NUM_LISTS*sizeof(double))/(1024*1024*1024.0));
+    printf("\nAllocating memory for multiway merging (GiB): %f",(NUM_ELEM*NUM_LISTS*sizeof(uint64_t))/(1024*1024*1024.0));
    // return;
-   double ** sequences =new double *[NUM_LISTS];
+   uint64_t ** sequences =new uint64_t *[NUM_LISTS];
    for (int i=0; i<NUM_LISTS; i++)
    {
-        sequences[i]=new double [NUM_ELEM];
+        sequences[i]=new uint64_t [NUM_ELEM];
    }
 
     for (int i=0; i<NUM_LISTS; i++)
     {    
         for (uint64_t j=0; j<NUM_ELEM; j++)
         {
-        sequences[i][j]=double(j);
+        sequences[i][j]=uint64_t(j);
         }
     }
 
@@ -174,19 +178,19 @@ void testMultiwayMerge()
     // }
 
    
-    std::vector<double> out_vect;
+    std::vector<uint64_t> out_vect;
     out_vect.reserve(NUM_ELEM*NUM_LISTS);
-    std::vector<std::pair<double *, double*> > seqs;
+    std::vector<std::pair<uint64_t *, uint64_t*> > seqs;
 
     for (int i=0; i<NUM_LISTS; i++)
     {
-        seqs.push_back(std::make_pair<double*,double* >(sequences[i]+0,sequences[i]+NUM_ELEM));
+        seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(sequences[i]+0,sequences[i]+NUM_ELEM));
     }
 
 
-    double tstart=omp_get_wtime();
-    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), out_vect.begin(), NUM_ELEM*NUM_LISTS, std::less<double>(), __gnu_parallel::parallel_tag());
-    double tend=omp_get_wtime();
+    uint64_t tstart=omp_get_wtime();
+    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), out_vect.begin(), NUM_ELEM*NUM_LISTS, std::less<uint64_t>(), __gnu_parallel::parallel_tag());
+    uint64_t tend=omp_get_wtime();
 
     printf("\nTime multiway: %f",tend-tstart);
 

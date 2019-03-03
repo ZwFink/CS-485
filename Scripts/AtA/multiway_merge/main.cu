@@ -33,6 +33,7 @@
 
 int main( int argc, char **argv )
 {
+    uint64_t index, cpu_index, gpu_index, start_index = 0;
 
 	omp_set_num_threads(NTHREADS);
 	omp_set_nested(1);
@@ -93,7 +94,9 @@ int main( int argc, char **argv )
     std::vector<uint64_t> offset_begin_gpu;
 
 
-    uint64_t *input = (uint64_t *) malloc( sizeof( uint64_t ) * N );
+    uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
+    uint64_t *tempBuff = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
+
 
     printf( "\nTotal size of input sorted array (MiB): %f", ((double) N * (sizeof(uint64_t)))/(1024.0*1024.0) );
 
@@ -149,7 +152,10 @@ int main( int argc, char **argv )
             compute_offsets( input, first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
     
             // merge this round of batches
-            // multiwayMerge( sublist_size, K, input, offset_list_cpu );
+            multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
+            
+            // find start_index
+            start_index = get_start_index( offset_list_cpu, K, sublist_size );
 
             // clear offset_list and offset_begin
             offset_begin_cpu.clear();

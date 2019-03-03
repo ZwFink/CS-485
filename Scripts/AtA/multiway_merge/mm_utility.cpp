@@ -32,26 +32,26 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
     uint64_t index = 0, offset_index = 0;
     uint64_t *val;
 
-	uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
-	//given the input batch size and N, recompute the batch size (apporximate)
-	uint64_t batchSizeApprox = N / numBatches;
+	 uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
+	 //given the input batch size and N, recompute the batch size (apporximate)
+	 uint64_t batchSizeApprox = N / numBatches;
 
-	printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
+	 printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
 
-	//split the input array based on the approximate batch size
+	 //split the input array based on the approximate batch size
 
-	// the first offset is index 0
-	batch_offsets->push_back( offset_index );
+	 // the first offset is index 0
+	 batch_offsets->push_back( offset_index );
 
-	// -1 because the last offset is the end of the array N-1
-	for( index = 0; index < numBatches - 1 ; index++ )
+	 // -1 because the last offset is the end of the array N-1
+	 for( index = 0; index < numBatches - 1 ; index++ )
     {
-		*val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
+	     *val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
 		
         offset_index  = std::distance( input, val );	
 		
         batch_offsets->push_back( offset_index );
-	}
+	 }
 
 	batch_offsets->push_back( N );
 }
@@ -144,6 +144,20 @@ void get_offset_beginning( std::vector<uint64_t> offset_list, std::vector<uint64
         begin_list->push_back( offset_list[ index ] );
     }
 } 
+
+
+// start_index = get_start_index( offset_list_cpu, K );
+uint64_t get_start_index( std::vector<uint64_t> in_list, uint64_t k, uint64_t sublist_size )
+{
+    uint64_t size = 0, index = 0;
+
+    for( index = 0; index < k; index++ )
+    {   
+        size = size + ( in_list[ index ] - ( index * sublist_size ) );
+    }
+
+    return size + k;
+}
 
 
 
