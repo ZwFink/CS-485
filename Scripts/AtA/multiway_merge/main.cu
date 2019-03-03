@@ -131,7 +131,7 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
-        for( cpu_index = 1; cpu_index < numCPUBatches; ++cpu_index )
+        for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
         {
             if( offset_list_cpu.size() == 0 )
             {
@@ -160,7 +160,7 @@ int main( int argc, char **argv )
       // BEGIN GPU SECTION
       #pragma omp section
       {
-        for( gpu_index = numCPUBatches; gpu_index < numGPUBatches; ++gpu_index )
+        for( gpu_index = numCPUBatches; gpu_index <= numGPUBatches; ++gpu_index )
         {
             // #pragma omp parallel for
             for( index = 0; index < K, index++ )
