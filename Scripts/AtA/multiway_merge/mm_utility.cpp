@@ -30,7 +30,7 @@
 void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize )
 {
     uint64_t index = 0, offset_index = 0;
-    uint64_t *val;
+    uint64_t *val  = nullptr;
 
 	 uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
 	 //given the input batch size and N, recompute the batch size (apporximate)
@@ -63,14 +63,14 @@ void compute_offsets( uint64_t *input, std::vector<uint64_t> *batch_offsets,
                                                             uint16_t k, uint64_t sublist_size )
 {
     uint64_t index = 0, offset_index = 0, start_index = 0;
-    uint64_t *pivot_val;
-    uint64_t *val;
+    uint64_t *pivot_val = nullptr;
+    uint64_t *val       = nullptr;
 
 
-    offset_list->push_back( batch_offsets[ batch_index ] ); 
+    offset_list->push_back( (*batch_offsets)[ batch_index ] ); 
 
     // find the pivot value
-    *pivot_val = input[ offset_list[ 0 ] ];
+    pivot_val = &input[ (*offset_list)[ 0 ] ];
 
     // Now find the remaining offsets in each sublist
     // starting from the second sublist since we already
@@ -79,18 +79,18 @@ void compute_offsets( uint64_t *input, std::vector<uint64_t> *batch_offsets,
     {
         start_index = index * sublist_size;
         
-        *val = std::upper_bound( 
-                                 input + start_index, 
-                                 input + ( start_index + (sublist_size - 1) ), 
-                                 *pivot_val 
-                               );
+        val = std::upper_bound( 
+                                input + start_index, 
+                                input + ( start_index + (sublist_size - 1) ), 
+                                *pivot_val 
+                              );
 
 	    offset_index = thrust::distance( input, val );
 
   	    offset_list->push_back( offset_index );
         
         printf("\nInput: %lu, offset_index (upper bound): %lu", 
-                                    val, offset_index );
+                                    *val, offset_index );
     }
 }
 
@@ -123,25 +123,25 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
 
 
 // set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
-void set_beginning_of_offsets( std::vector<uint64_t> begin_offset_list, uint64_t sublist_size, uint16_t k )
+void set_beginning_of_offsets( std::vector<uint64_t> *begin_offset_list, uint64_t sublist_size, uint16_t k )
 {
     uint64_t index = 0;
 
     for( index = 0; index < k; index++ )
     {
-        begin_offset_list.push_back( index * sublist_size );
+        begin_offset_list->push_back( index * sublist_size );
     }
 }
 
 
 // get_offset_beginning( offset_list_cpu, &offset_begin_gpu );
-void get_offset_beginning( std::vector<uint64_t> offset_list, std::vector<uint64_t> begin_list )
+void get_offset_beginning( std::vector<uint64_t> *offset_list, std::vector<uint64_t> *begin_list )
 {
     uint64_t index;
 
-    for( index = 0; index < offset_list.size(); index++ )
+    for( index = 0; index < offset_list->size(); index++ )
     {
-        begin_list.push_back( offset_list[ index ] );
+        begin_list->push_back( (*offset_list)[ index ] );
     }
 } 
 
