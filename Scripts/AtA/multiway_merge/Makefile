@@ -14,7 +14,7 @@ NTHREADS = -DNTHREADS=16
 CFLAGS = -c 
 
 
-PARAMS= -DNUM_TRIALS=1 -DBLOCKSIZE=256 -DNUMGPU=1 -DCPUFRAC=0.0 -DPINNEDBUFFER=1000000 -DSTREAMSPERGPU=8 -DBLOCKING=0 
+PARAMS= -DNUM_TRIALS=1 -DBLOCKSIZE=256 -DNUMGPU=1 -DCPUFRAC=1.0 -DPINNEDBUFFER=1000000 -DSTREAMSPERGPU=8 -DBLOCKING=0 
 
 all: $(EXECUTABLE)
 
@@ -41,7 +41,7 @@ $(EXECUTABLE): $(OBJECTS) $(CUDAOBJECTS)
 
 .PHONY: debug clean
 debug: clean
-debug: FLAGS +=-g -O0
+debug: FLAGS =-std=c++11 -O0 -g -G -Xcompiler -fopenmp -arch=compute_60 -code=sm_60 -lcuda -lineinfo -Xcompiler -fpermissive
 debug: main
 
 clean:
