@@ -190,9 +190,28 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
+        #pragma omp parallel for num_threads( STREAMSPERGPU ) ordered schedule( static,1 )
         for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches; ++gpu_index )
         {
-            // #pragma omp parallel for
+            int stream_id = 0;
+            int thread_num = omp_get_thread_num();
+
+
+            #pragma omp single
+            {
+                if( offset_list_gpu.size() == 0 )
+                    {
+                        set_beginning_of_offsets( &offset_begin_gpu, sublist_size, K );
+                    }
+
+                else // copy over indices from offset_list to offset_begin
+                    {
+                        get_offset_beginning( &offset_list_gpu, &offset_begin_gpu );
+                
+                        offset_list_gpu.clear();
+                    }
+            }
+
             for( index = 0; index < K; index++ )
             {
                 continue;
