@@ -143,13 +143,13 @@ int main( int argc, char **argv )
 
             else // copy over indices from offset_list to offset_begin
             {
-                get_offset_beginning( offset_list_cpu, &offset_begin_cpu );
+                get_offset_beginning( &offset_list_cpu, &offset_begin_cpu );
                 
                 offset_list_cpu.clear();
             }
 
             // find offset_list_cpu 
-            compute_offsets( input, first_sublist_offsets, &offset_list_cpu, &cpu_index, K, sublist_size ); 
+            compute_offsets( input, &first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
     
             // merge this round of batches
             multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
@@ -169,9 +169,9 @@ int main( int argc, char **argv )
         for( gpu_index = numCPUBatches; gpu_index <= numGPUBatches; ++gpu_index )
         {
             // #pragma omp parallel for
-            for( index = 0; index < K, index++ )
+            for( index = 0; index < K; index++ )
             {
-
+                continue;
             }
         }
 
