@@ -8,7 +8,7 @@ EXECUTABLE = main
 
 
 #fpermissive because of tbb library on UHHPC
-FLAGS =  -std=c++11 -O3 -Xcompiler -fopenmp -arch=compute_60 -code=sm_60 -lcuda -lineinfo
+FLAGS =  -std=c++11 -O3 -Xcompiler -fopenmp -arch=compute_60 -code=sm_60 -lcuda -lineinfo -Xcompiler -fpermissive
 # FLAGS =  -std=c++11 -O3 -Xcompiler -fopenmp -Xcompiler -fpermissive -ltbb -arch=compute_60 -code=sm_60 -lcuda -lineinfo
 NTHREADS = -DNTHREADS=16 
 CFLAGS = -c 
