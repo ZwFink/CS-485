@@ -166,7 +166,31 @@ int main( int argc, char **argv )
       // BEGIN GPU SECTION
       #pragma omp section
       {
-        for( gpu_index = numCPUBatches; gpu_index <= numGPUBatches; ++gpu_index )
+          cudaStream_t streams[ STREAMSPERGPU ];
+          cudaError_t result = cudaSuccess;
+          uint64_t result_size = BATCH_SIZE * K * numGPUBatches;
+          uint64_t stream_size = BATCH_SIZE * STREAMSPERGPU;
+          uint64_t *output = nullptr;
+          uint64_t *stream_dev_ptrs         = nullptr;
+          uint64_t *input_to_gpu_pinned = nullptr;
+          uint64_t *result_from_batches_pinned = nullptr;
+
+          result = create_streams( streams, STREAMSPERGPU );
+          assert( result == cudaSuccess );
+
+          result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size );
+          assert( result == cudaSuccess );
+
+          result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
+          assert( result == cudaSuccess );
+
+          result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
+          assert( result == cudaSuccess );
+
+          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
+          assert( result == cudaSuccess );
+
+        for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches; ++gpu_index )
         {
             // #pragma omp parallel for
             for( index = 0; index < K; index++ )
