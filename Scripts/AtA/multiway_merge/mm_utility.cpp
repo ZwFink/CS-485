@@ -46,7 +46,7 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
 	 // -1 because the last offset is the end of the array N-1
 	 for( index = 0; index < numBatches - 1 ; index++ )
     {
-	     *val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
+	     val = std::upper_bound( input, input + N, &input[ ( index + 1 ) * batchSizeApprox ] );
 		
         offset_index  = std::distance( input, val );	
 		
@@ -129,7 +129,7 @@ void set_beginning_of_offsets( std::vector<uint64_t> begin_offset_list, uint64_t
 
     for( index = 0; index < k; index++ )
     {
-        begin_offset_list->push_back( index * sublist_size );
+        begin_offset_list.push_back( index * sublist_size );
     }
 }
 
@@ -141,7 +141,7 @@ void get_offset_beginning( std::vector<uint64_t> offset_list, std::vector<uint64
 
     for( index = 0; index < offset_list.size(); index++ )
     {
-        begin_list->push_back( offset_list[ index ] );
+        begin_list.push_back( offset_list[ index ] );
     }
 } 
 
