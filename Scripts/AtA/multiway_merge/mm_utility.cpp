@@ -46,7 +46,7 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
 	 // -1 because the last offset is the end of the array N-1
 	 for( index = 0; index < numBatches - 1 ; index++ )
     {
-	     val = std::upper_bound( input, input + N, &input[ ( index + 1 ) * batchSizeApprox ] );
+	     val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
 		
         offset_index  = std::distance( input, val );	
 		
