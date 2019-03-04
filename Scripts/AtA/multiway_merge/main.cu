@@ -149,7 +149,7 @@ int main( int argc, char **argv )
             }
 
             // find offset_list_cpu 
-            compute_offsets( input, first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
+            compute_offsets( input, first_sublist_offsets, &offset_list_cpu, &cpu_index, K, sublist_size ); 
     
             // merge this round of batches
             multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
