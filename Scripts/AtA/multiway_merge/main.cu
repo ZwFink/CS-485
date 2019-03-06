@@ -33,7 +33,8 @@
 
 int main( int argc, char **argv )
 {
-    uint64_t index, cpu_index, gpu_index, start_index = 0;
+    uint64_t index, cpu_index, gpu_index, curr_end_index = 0, piv_index, pivot_val;
+    uint64_t *temp_ptr;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
@@ -98,6 +99,7 @@ int main( int argc, char **argv )
     std::vector<uint64_t> first_sublist_starts;
     std::vector<uint64_t> first_sublist_ends;
     std::vector<uint64_t *> list_begin_ptrs; 
+    std::vector<uint64_t> temp_start, temp_end;
     // start and end vectors containing start and end
     // pivot vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
@@ -147,12 +149,28 @@ int main( int argc, char **argv )
     end_vectors[0] = first_sublist_ends;
 
     // find remaining start and end pivot vectors for each sublist
-    // find_pivot_vectors()
-
+    // TO DO: create function find_pivot_vectors() for task below
     for( index = 0; index < list_begin_ptrs.size(); ++index )
     {
-        
+        // create sublist pivot starts and pivot ends
+        temp_start = new std::vector<uint64_t>;
+        temp_end = new std::vector<uint64_t>;
 
+        for( piv_index = 0; piv_index < first_sublist_size.size(); ++piv_index )
+        {
+            pivot_val = first_sublist_ends[ piv_index ];
+    
+            val = std::upper_bound( 
+                                    &list_begin_ptrs[ index ], 
+                                    &list_begin_ptrs[ index ] + sublist_size - 1, 
+                                    pivot_val 
+                                  );
+
+            curr_end_index = thrust::distance( &list_begin_ptrs[index], val );
+
+            temp_end->push_back( curr_end_index );
+        }
+        
     }
 
 
