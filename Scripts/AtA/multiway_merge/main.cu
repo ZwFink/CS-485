@@ -191,7 +191,7 @@ int main( int argc, char **argv )
           assert( result == cudaSuccess );
 
         #pragma omp parallel for num_threads( STREAMSPERGPU ) ordered schedule( static,1 )
-        for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches; ++gpu_index )
+        for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
             int stream_id = 0;
             int thread_num = omp_get_thread_num();
