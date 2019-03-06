@@ -34,8 +34,9 @@
 int main( int argc, char **argv )
 {
     uint64_t index, cpu_index, gpu_index, start_index = 0;
-
-	omp_set_num_threads(NTHREADS);
+    unsigned int numCPUBatches, numGPUBatches;
+	
+    omp_set_num_threads(NTHREADS);
 	omp_set_nested(1);
 
 	////////////////
@@ -86,17 +87,23 @@ int main( int argc, char **argv )
 	printf( "\nBatch size: %lu\n", BATCH_SIZE );
     printf( "K (number of sublists): %u\n", K );
 
-    // offset vectors
+    // offset vectors  (NEEDS TO BE DELETED)
 	std::vector<uint64_t> first_sublist_pivots;
     std::vector<uint64_t> offset_list_cpu;
     std::vector<uint64_t> offset_list_gpu;
     std::vector<uint64_t> offset_begin_cpu;
     std::vector<uint64_t> offset_begin_gpu;
-    // start and end vectors for each sublist
+    
+    // helper vectors
+    std::vector<uint64_t> first_sublist_starts;
+    std::vector<uint64_t> first_sublist_ends;
+    std::vector<uint64_t *> list_begin_ptrs; 
+    // start and end vectors containing start and end
+    // pivot vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
     std::vector<std::vector<uint64_t>> end_vectors;
     
-
+    // initialize array of integers
     uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
     uint64_t *tempBuff = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
 
@@ -105,7 +112,7 @@ int main( int argc, char **argv )
 
     // Generate sorted sublists 
 	double tstartsort = omp_get_wtime();
-    std::vector<uint64_t *> list_begin_ptrs = *generate_k_sorted_sublists( input, N, seed, K );
+    list_begin_ptrs = *generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort = omp_get_wtime();
 
 	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
@@ -117,26 +124,30 @@ int main( int argc, char **argv )
     // compute the number of batches
 	// The number of batches should ensure that the input dataset is split at one point
 	// The input batch size is thus an approximation
-
-	compute_batches( sublist_size, input, &first_sublist_pivots, BATCH_SIZE );
+	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE );
 	
     // split the data between CPU and GPU for hybrid searches
-	unsigned int numCPUBatches = ( first_sublist_offsets.size() - 1 ) * CPUFRAC;
-	unsigned int numGPUBatches = ( first_sublist_offsets.size() - 1 ) - numCPUBatches;
+	numCPUBatches = ( first_sublist_ends.size() - 1 ) * CPUFRAC;
+	numGPUBatches = ( first_sublist_ends.size() - 1 ) - numCPUBatches;
 
     printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
-    assert( (numCPUBatches + numGPUBatches) == (first_sublist_offsets.size() - 1) );
+    assert( (numCPUBatches + numGPUBatches) == (first_sublist_ends.size() - 1) );
 
-     
-    std::vector<uint64_t> first_start_vec;
+    // first_sublist_ends includes index 0 as first element which should be erased
+    // note that this was only needed for calculation of num cpu/gpu batches.
+    first_sublist_ends.erase( first_sublist_ends.begin() );
     
     // find start pivots for first sublist
     for( index = 0; index < N; index = index + BATCH_SIZE )
     {
-        first_start_vec->push_back(index);
+        first_sublist_starts->push_back(index);
     }    
     
-    start_vectors[0] = first_start_vec;
+    start_vectors[0] = first_sublist_starts;
+    end_vectors[0] = first_sublist_ends;
+
+    // find remaining start and end pivot vectors for each sublist
+    // find_pivot_vectors()
 
     for( index = 0; index < list_begin_ptrs.size(); ++index )
     {

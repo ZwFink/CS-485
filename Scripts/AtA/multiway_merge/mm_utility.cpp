@@ -29,8 +29,7 @@
 
 void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize )
 {
-    uint64_t index = 0, offset_index = 0;
-    uint64_t *val  = nullptr;
+    uint64_t index = 0;
 
 	 uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
 	 //given the input batch size and N, recompute the batch size (apporximate)
@@ -41,19 +40,15 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
 	 //split the input array based on the approximate batch size
 
 	 // the first offset is index 0
-	 batch_offsets->push_back( offset_index );
+	 batch_offsets->push_back( index );
 
-	 // -1 because the last offset is the end of the array N-1
-	 for( index = 0; index < numBatches - 1 ; index++ )
-    {
-	     val = std::upper_bound( input, input + N, input[ ( index + 1 ) * batchSizeApprox ] );
-		
-        offset_index  = std::distance( input, val );	
-		
-        batch_offsets->push_back( offset_index );
+	 // -1 because the last pivot is the end of the array N-1
+	 for( index = batchSizeApprox - 1; index < numBatches - 1 ; index = index + batchSizeApprox )
+     {
+        batch_offsets->push_back( index );
 	 }
 
-	batch_offsets->push_back( N );
+	batch_offsets->push_back( N - 1 );
 }
 
 // compute_offsets( input, first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
