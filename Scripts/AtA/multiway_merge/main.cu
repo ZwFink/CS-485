@@ -102,7 +102,7 @@ int main( int argc, char **argv )
 
     // Generate sorted sublists 
 	double tstartsort = omp_get_wtime();
-    generate_k_sorted_sublists( input, N, seed, K );
+    std::vector<uint64_t *> list_begin_ptrs = generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort = omp_get_wtime();
 
 	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
@@ -197,20 +197,17 @@ int main( int argc, char **argv )
             int thread_num = omp_get_thread_num();
 
 
-            #pragma omp single
-            {
-                if( offset_list_gpu.size() == 0 )
-                    {
-                        set_beginning_of_offsets( &offset_begin_gpu, sublist_size, K );
-                    }
+            if( offset_list_gpu.size() == 0 )
+                {
+                    set_beginning_of_offsets( &offset_begin_gpu, sublist_size, K );
+                }
 
-                else // copy over indices from offset_list to offset_begin
-                    {
-                        get_offset_beginning( &offset_list_gpu, &offset_begin_gpu );
+            else // copy over indices from offset_list to offset_begin
+                {
+                    get_offset_beginning( &offset_list_gpu, &offset_begin_gpu );
                 
-                        offset_list_gpu.clear();
-                    }
-            }
+                    offset_list_gpu.clear();
+                }
 
             for( index = 0; index < K; index++ )
             {
