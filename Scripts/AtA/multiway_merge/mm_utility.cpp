@@ -94,7 +94,7 @@ void compute_offsets( uint64_t *input, std::vector<uint64_t> *batch_offsets,
     }
 }
 
-void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k )
+std::vector<uint64_t*> generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k )
 {
     uint64_t outer_index  = 0;
     uint64_t batch_size   = 0;
@@ -102,6 +102,9 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
     uint64_t total_index  = 0;
 
     uint64_t elements_per_list = total_elements / k;
+
+    std::vector<uint64_t*> list_ptrs;
+    list_ptrs.reserve( k );
 
 	//rng for the keys
 	std::mt19937 gen( seed ); 
@@ -118,7 +121,9 @@ void generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, un
             __gnu_parallel::sort( base_ptr + ( batch_index * elements_per_list ),
                                   base_ptr + ( batch_index * elements_per_list ) + elements_per_list - 1
                                 );
+            list_ptrs.push_back( base_ptr + ( batch_index * elements_per_list ) );
         }
+    return list_ptrs;
 }
 
 
