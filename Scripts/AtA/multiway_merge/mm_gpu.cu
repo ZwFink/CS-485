@@ -30,7 +30,6 @@
 #include "mm_gpu.h"
 #include "omp.h"
 
-
 void warm_up_gpu( int device )
 {
     cudaSetDevice( device ); 		
@@ -61,4 +60,24 @@ void warm_up_gpu( int device )
 
     return;
 }
+
+cudaError_t create_streams( cudaStream_t *streams, const int num_streams )
+{
+    int index = 0;
+    cudaError_t error_code = cudaSuccess;
+    cudaError_t result     = cudaSuccess;
+
+
+    for( index = 0; index < num_streams; ++index )
+        {
+            error_code = cudaStreamCreate( &streams[ index ] );
+            if(  error_code != cudaSuccess )
+                {
+                    result = error_code;
+                }
+        }
+    return result;
+}
+
+
 
