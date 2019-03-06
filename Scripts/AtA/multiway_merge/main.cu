@@ -169,8 +169,20 @@ int main( int argc, char **argv )
             curr_end_index = thrust::distance( &list_begin_ptrs[index], val );
 
             temp_end->push_back( curr_end_index );
+
+            if( piv_index == 0 )
+            {
+                temp_start->push_back( (*list_begin_ptrs)[ index ] );
+            }
+
+            else
+            {
+                temp_start->push_back( temp_end[ piv_index - 1 ] );
+            }
         }
-        
+
+        start_vectors[ index ] = temp_start;
+        end_vectors[ index ] = temp_end;
     }
 
 
