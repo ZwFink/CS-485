@@ -92,7 +92,10 @@ int main( int argc, char **argv )
     std::vector<uint64_t> offset_list_gpu;
     std::vector<uint64_t> offset_begin_cpu;
     std::vector<uint64_t> offset_begin_gpu;
-
+    // start and end vectors for each sublist
+    std::vector<std::vector<uint64_t>> start_vectors;
+    std::vector<std::vecotr<uint64_t>> end_vectors;
+    
 
     uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
     uint64_t *tempBuff = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
