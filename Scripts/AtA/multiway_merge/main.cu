@@ -87,14 +87,14 @@ int main( int argc, char **argv )
     printf( "K (number of sublists): %u\n", K );
 
     // offset vectors
-	std::vector<uint64_t> first_sublist_offsets;
+	std::vector<uint64_t> first_sublist_pivots;
     std::vector<uint64_t> offset_list_cpu;
     std::vector<uint64_t> offset_list_gpu;
     std::vector<uint64_t> offset_begin_cpu;
     std::vector<uint64_t> offset_begin_gpu;
     // start and end vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
-    std::vector<std::vecotr<uint64_t>> end_vectors;
+    std::vector<std::vector<uint64_t>> end_vectors;
     
 
     uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
@@ -106,13 +106,10 @@ int main( int argc, char **argv )
     // Generate sorted sublists 
 	double tstartsort = omp_get_wtime();
     std::vector<uint64_t *> list_begin_ptrs = generate_k_sorted_sublists( input, N, seed, K );
-	double tendsort = omp_get_wtime();
+    double tendsort = omp_get_wtime();
 
 	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
 	
-    //============================================================
-    //========== Begin Hybrid CPU/GPU multiway merge =============
-    //============================================================
 
 	//start hybrid CPU + GPU total time timer
 	double tstarthybrid = omp_get_wtime();
@@ -121,7 +118,7 @@ int main( int argc, char **argv )
 	// The number of batches should ensure that the input dataset is split at one point
 	// The input batch size is thus an approximation
 
-	compute_batches( sublist_size, input, &first_sublist_offsets, BATCH_SIZE );
+	compute_batches( sublist_size, input, &first_sublist_pivots, BATCH_SIZE );
 	
     // split the data between CPU and GPU for hybrid searches
 	unsigned int numCPUBatches = ( first_sublist_offsets.size() - 1 ) * CPUFRAC;
@@ -129,6 +126,28 @@ int main( int argc, char **argv )
 
     printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
     assert( (numCPUBatches + numGPUBatches) == (first_sublist_offsets.size() - 1) );
+
+     
+    std::vector<uint64_t> first_start_vec;
+    
+    // find start and end vectors for first sublist
+    for( index = 0; index < N; index = index + BATCH_SIZE )
+    {
+        first_start_vec->push_back(index);
+    }    
+    
+    start_vectors[0] = first_start_vec;
+
+    for( index = 0; index < list_begin_ptrs.size(); ++index )
+    {
+        
+
+    }
+
+
+
+
+
 	
 
     #pragma omp parallel sections
