@@ -130,7 +130,7 @@ int main( int argc, char **argv )
      
     std::vector<uint64_t> first_start_vec;
     
-    // find start and end vectors for first sublist
+    // find start pivots for first sublist
     for( index = 0; index < N; index = index + BATCH_SIZE )
     {
         first_start_vec->push_back(index);
