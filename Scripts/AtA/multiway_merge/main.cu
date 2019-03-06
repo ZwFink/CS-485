@@ -94,7 +94,7 @@ int main( int argc, char **argv )
     std::vector<uint64_t> offset_begin_gpu;
     // start and end vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
-    std::vector<std::vecotr<uint64_t>> end_vectors;
+    std::vector<std::vector<uint64_t>> end_vectors;
     
 
     uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
@@ -105,7 +105,7 @@ int main( int argc, char **argv )
 
     // Generate sorted sublists 
 	double tstartsort = omp_get_wtime();
-    std::vector<uint64_t *> list_begin_ptrs = generate_k_sorted_sublists( input, N, seed, K );
+    std::vector<uint64_t *> list_begin_ptrs = *generate_k_sorted_sublists( input, N, seed, K );
 	double tendsort = omp_get_wtime();
 
 	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
@@ -226,7 +226,6 @@ int main( int argc, char **argv )
 
     // end hybrid CPU + GPU total time timer
 	double tendhybrid = omp_get_wtime();
-
     free( input );
 
 	return EXIT_SUCCESS;
