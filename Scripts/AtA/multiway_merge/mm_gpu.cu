@@ -80,12 +80,12 @@ cudaError_t create_streams( cudaStream_t *streams, const int num_streams )
 }
 
 
-cudaError_t copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
-                                   uint64_t *device_ptr, cudaStream_t stream,
-                                   uint64_t start_index,
-                                   uint64_t end_index, uint64_t BATCH_SIZE,
-                                   int thread_id, int stream_id
-                                 )
+void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
+                            uint64_t *device_ptr, cudaStream_t stream,
+                            uint64_t start_index,
+                            uint64_t end_index, uint64_t BATCH_SIZE,
+                            int thread_id, int stream_id
+                          )
 {
     uint64_t copy_index        = 0;
     uint64_t end_index_actual  = 0;
@@ -110,7 +110,7 @@ cudaError_t copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
                          data_copied * sizeof( uint64_t )
                        );
 
-            cudaMemcpyAsync( device_ptr + ( thread_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
+            cudaMemcpyAsync( device_ptr  + ( thread_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
                              pinned_host + ( thread_id * data_copied_total ),
                              data_copied * sizeof( uint64_t ),
                              cudaMemcpyHostToDevice, stream
@@ -121,7 +121,5 @@ cudaError_t copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
 
             cudaStreamSynchronize( stream );
         }
-
-    return cudaSuccess;
 }
 
