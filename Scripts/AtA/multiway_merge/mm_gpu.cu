@@ -98,9 +98,9 @@ cudaError_t copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
             // want to make sure that we don't copy extra data
-            end_index_actual = std::min( start_index + left_to_copy,
-                                         start_index + BATCH_SIZE 
-                                       );
+            end_index_actual = std::min( left_to_copy,
+                                         BATCH_SIZE 
+                                       ) + start_index;
             data_copied        = end_index_actual - start_index;
             data_copied_total += data_copied;
 
