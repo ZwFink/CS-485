@@ -281,7 +281,8 @@ int main( int argc, char **argv )
                 start_index_gpu = start_vectors[ index ][ gpu_index ];
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                copy_to_device_buffer( input, input_to_gpu_pinned, stream_dev_ptrs,
+                copy_to_device_buffer( list_begin_ptrs[ index ],
+                                       input_to_gpu_pinned, stream_dev_ptrs,
                                        streams[ stream_id ],
                                        start_index_gpu, end_index_gpu,
                                        BATCH_SIZE, thread_id, stream_id
