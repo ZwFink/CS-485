@@ -257,10 +257,10 @@ int main( int argc, char **argv )
           result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
           assert( result == cudaSuccess );
 
-          result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
+          result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE );
           assert( result == cudaSuccess );
 
-          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
+          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE );
           assert( result == cudaSuccess );
 
         for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
