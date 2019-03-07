@@ -30,8 +30,8 @@
 void find_pivot_vectors( uint64_t *input, 
 						 std::vector<std::vector<uint64_t>> *start_vectors, 
 						 std::vector<std::vector<uint64_t>> *end_vectors, 
-						 std::vector<uint64_t> first_sublist_ends, 
-						 std::vector<uint64_t *> list_begin_ptrs, 
+						 std::vector<uint64_t> *first_sublist_ends, 
+						 std::vector<uint64_t *> *list_begin_ptrs, 
 						 uint64_t sublist_size )
 {
 	uint64_t index, piv_index, curr_end_index;
@@ -40,18 +40,18 @@ void find_pivot_vectors( uint64_t *input,
 	std::vector<uint64_t> temp_start;
 	std::vector<uint64_t> temp_end;	
 
-	for( index = 1; index < list_begin_ptrs.size(); ++index )
+	for( index = 1; index < list_begin_ptrs->size(); ++index )
     {
 		temp_start.clear();
 		temp_end.clear();		
 
-        for( piv_index = 0; piv_index < first_sublist_ends.size(); ++piv_index )
+        for( piv_index = 0; piv_index < first_sublist_ends->size(); ++piv_index )
         {
-            pivot_val = first_sublist_ends[ piv_index ];
+            pivot_val = (*first_sublist_ends)[ piv_index ];
     
             temp_ptr = std::upper_bound( 
-                                    input + *(list_begin_ptrs[ index ]), 
-                                    input + *(list_begin_ptrs[ index ]) + sublist_size, 
+                                        input + *((*list_begin_ptrs)[ index ]), 
+                                        input + *((*list_begin_ptrs)[ index ]) + sublist_size, 
                                     pivot_val 
                                   );
 
@@ -61,7 +61,7 @@ void find_pivot_vectors( uint64_t *input,
 
             if( piv_index == 0 )
             {
-                temp_start[ piv_index ] = *(list_begin_ptrs[ index ]);
+                temp_start[ piv_index ] = *((*list_begin_ptrs)[ index ]);
             }
 
             else
