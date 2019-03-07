@@ -274,7 +274,7 @@ int main( int argc, char **argv )
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
-                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, results_from_batches_pinned, \
+                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output, input \
                                )
             for( index = 0; index < K; index++ )
