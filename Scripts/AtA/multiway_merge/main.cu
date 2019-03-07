@@ -106,8 +106,9 @@ int main( int argc, char **argv )
     std::vector<std::vector<uint64_t>> end_vectors;
     
     // initialize array of integers
-    uint64_t *input = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
-    uint64_t *tempBuff = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
+    uint64_t *input      = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
+    uint64_t *output_arr = (uint64_t *) malloc( sizeof( uint64_t ) * N );
+    uint64_t *tempBuff   = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
 
 
     printf( "\nTotal size of input sorted array (MiB): %f", ((double) N * (sizeof(uint64_t)))/(1024.0*1024.0) );
@@ -232,7 +233,7 @@ int main( int argc, char **argv )
           cudaStream_t streams[ STREAMSPERGPU ];
           cudaError_t result = cudaSuccess;
           uint64_t result_size = BATCH_SIZE * K * numGPUBatches;
-          uint64_t stream_size = BATCH_SIZE * STREAMSPERGPU;
+          uint64_t stream_size = BATCH_SIZE * K;
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
           uint64_t *input_to_gpu_pinned = nullptr;
@@ -253,45 +254,52 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-        #pragma omp parallel for num_threads( STREAMSPERGPU ) ordered schedule( static,1 )
         for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
-            int stream_id = 0;
-            int thread_num = omp_get_thread_num();
 
+            int thread_id = omp_get_thread_num();
+            int stream_id = thread_id % STREAMSPERGPU;
 
-            if( offset_list_gpu.size() == 0 )
-                {
-                    set_beginning_of_offsets( &offset_begin_gpu, sublist_size, K );
-                }
+            uint64_t start_index_gpu = 0;
+            uint64_t end_index_gpu   = 0;
 
-            else // copy over indices from offset_list to offset_begin
-                {
-                    get_offset_beginning( &offset_list_gpu, &offset_begin_gpu );
-                
-                    offset_list_gpu.clear();
-                }
-
+            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+                        end_index_gpu, start_vectors, end_vectors ) \
+                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, results_from_batches_pinned, \
+                                 input_to_gpu_pinned, stream_dev_ptrs, output, input \
+                               )
             for( index = 0; index < K; index++ )
             {
-                continue;
+
+                thread_id = omp_get_thread_num();
+                stream_id = thread_id % STREAMSPERGPU;
+
+                start_index_gpu = 0;
+                end_index_gpu   = 0;
+
+                // copy data in BATCH_SIZE chunks from host memory to pinned memory
+                start_index_gpu = start_vectors[ index ][ gpu_index ];
+                end_index_gpu   = end_vectors[ index ][ gpu_index ];
+
+                copy_to_device_buffer( input, input_to_gpu_pinned, stream_dev_ptrs,
+                                       streams[ stream_id ],
+                                       start_index_gpu, end_index_gpu,
+                                       BATCH_SIZE, thread_id, stream_id
+                                     );
+                // copy data in BATCH_SIZE chunks from pinned data to gpu
+                // do pairwise merging of sublists
+
+                // copy data in BATCH_SIZE chunks from device to host 
             }
         }
-
       }
-
     }
-
-
 
     // end hybrid CPU + GPU total time timer
 	double tendhybrid = omp_get_wtime();
     free( input );
+    free( output_arr );
 
 	return EXIT_SUCCESS;
-
-
-
-
 
 }
