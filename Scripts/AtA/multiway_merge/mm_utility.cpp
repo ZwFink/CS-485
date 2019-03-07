@@ -26,6 +26,54 @@
 
 #include "omp.h"
 #include "mm_utility.h"
+	
+void find_pivot_vectors( uint64_t *input, 
+						 std::vector<std::vector<uint64_t>> *start_vectors, 
+						 std::vector<std::vector<uint64_t>> *end_vectors, 
+						 std::vector<uint64_t> first_sublist_ends, 
+						 std::vector<uint64_t *> list_begin_ptrs, 
+						 uint64_t sublist_size )
+{
+	uint64_t index, piv_index, curr_end_index;
+	uint64_t *temp_ptr = nullptr;
+	uint64_t pivot_val;
+	std::vector<uint64_t> temp_start;
+	std::vector<uint64_t> temp_end;	
+
+	for( index = 1; index < list_begin_ptrs.size(); ++index )
+    {
+		temp_start.clear();
+		temp_end.clear();		
+
+        for( piv_index = 0; piv_index < first_sublist_ends.size(); ++piv_index )
+        {
+            pivot_val = first_sublist_ends[ piv_index ];
+    
+            temp_ptr = std::upper_bound( 
+                                    input + *(list_begin_ptrs[ index ]), 
+                                    input + *(list_begin_ptrs[ index ]) + sublist_size, 
+                                    pivot_val 
+                                  );
+
+            curr_end_index = thrust::distance( input, temp_ptr );
+
+            temp_end[ piv_index ] = curr_end_index;
+
+            if( piv_index == 0 )
+            {
+                temp_start[ piv_index ] = *(list_begin_ptrs[ index ]);
+            }
+
+            else
+            {
+                temp_start[ piv_index ] = temp_end[ piv_index - 1 ];
+            }
+        }
+
+        start_vectors->push_back( temp_start );
+        end_vectors->push_back( temp_end );
+    }
+}
 
 void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize )
 {

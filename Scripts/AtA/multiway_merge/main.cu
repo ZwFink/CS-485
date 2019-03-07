@@ -14,7 +14,7 @@
 #include <thread>
 #include <cstdint>
 #include <utility>
-
+#include <vector>
 
 // thrust inclusions
 #include <thrust/host_vector.h>
@@ -34,7 +34,7 @@
 int main( int argc, char **argv )
 {
     uint64_t index, cpu_index, gpu_index, curr_end_index = 0, piv_index, pivot_val;
-    uint64_t *temp_ptr;
+    uint64_t *temp_ptr = nullptr;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
@@ -89,17 +89,18 @@ int main( int argc, char **argv )
     printf( "K (number of sublists): %u\n", K );
 
     // offset vectors  (NEEDS TO BE DELETED)
-	std::vector<uint64_t> first_sublist_pivots;
-    std::vector<uint64_t> offset_list_cpu;
+	//std::vector<uint64_t> first_sublist_pivots;
+    //std::vector<uint64_t> offset_list_cpu;
     std::vector<uint64_t> offset_list_gpu;
-    std::vector<uint64_t> offset_begin_cpu;
+    //std::vector<uint64_t> offset_begin_cpu;
     std::vector<uint64_t> offset_begin_gpu;
     
-    // helper vectors
+	// helper vectors
     std::vector<uint64_t> first_sublist_starts;
     std::vector<uint64_t> first_sublist_ends;
     std::vector<uint64_t *> list_begin_ptrs; 
-    std::vector<uint64_t> temp_start, temp_end;
+    std::vector<uint64_t> temp_start;
+	std::vector<uint64_t> temp_end;
     // start and end vectors containing start and end
     // pivot vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
@@ -140,9 +141,11 @@ int main( int argc, char **argv )
     first_sublist_ends.erase( first_sublist_ends.begin() );
     
     // find start pivots for first sublist
+	uint64_t iter = 0;
     for( index = 0; index < N; index = index + BATCH_SIZE )
     {
-        first_sublist_starts->push_back(index);
+        first_sublist_starts[ iter ] = index;
+		iter++;
     }    
     
     start_vectors[0] = first_sublist_starts;
@@ -150,40 +153,46 @@ int main( int argc, char **argv )
 
     // find remaining start and end pivot vectors for each sublist
     // TO DO: create function find_pivot_vectors() for task below
-    for( index = 0; index < list_begin_ptrs.size(); ++index )
-    {
-        // create sublist pivot starts and pivot ends
-        temp_start = new std::vector<uint64_t>;
-        temp_end = new std::vector<uint64_t>;
-
-        for( piv_index = 0; piv_index < first_sublist_size.size(); ++piv_index )
-        {
-            pivot_val = first_sublist_ends[ piv_index ];
     
-            val = std::upper_bound( 
-                                    &list_begin_ptrs[ index ], 
-                                    &list_begin_ptrs[ index ] + sublist_size - 1, 
-                                    pivot_val 
-                                  );
+	find_pivot_vectors( input, &start_vectors, &end_vectors, first_sublist_ends, &list_begin_ptrs, sublist_size );
 
-            curr_end_index = thrust::distance( &list_begin_ptrs[index], val );
+	//for( index = 0; index < list_begin_ptrs.size(); ++index )
+    //{
+    //    // create sublist pivot starts and pivot ends
+    //    //temp_start = new std::vector<uint64_t>;
+    //    //temp_end = new std::vector<uint64_t>;
+	//	temp_start.clear();
+	//	temp_end.clear();		
 
-            temp_end->push_back( curr_end_index );
 
-            if( piv_index == 0 )
-            {
-                temp_start->push_back( (*list_begin_ptrs)[ index ] );
-            }
+    //    for( piv_index = 0; piv_index < first_sublist_starts.size(); ++piv_index )
+    //    {
+    //        pivot_val = first_sublist_ends[ piv_index ];
+    //
+    //        temp_ptr = std::upper_bound( 
+    //                                list_begin_ptrs + index, 
+    //                                list_begin_ptrs + index + (sublist_size - 1), 
+    //                                pivot_val 
+    //                              );
 
-            else
-            {
-                temp_start->push_back( temp_end[ piv_index - 1 ] );
-            }
-        }
+    //        curr_end_index = thrust::distance( list_begin_ptrs, temp_ptr );
 
-        start_vectors[ index ] = temp_start;
-        end_vectors[ index ] = temp_end;
-    }
+    //        temp_end->push_back( curr_end_index );
+
+    //        if( piv_index == 0 )
+    //        {
+    //            temp_start->push_back( (*list_begin_ptrs)[ index ] );
+    //        }
+
+    //        else
+    //        {
+    //            temp_start->push_back( temp_end[ piv_index - 1 ] );
+    //        }
+    //    }
+
+    //    start_vectors[ index ] = temp_start;
+    //    end_vectors[ index ] = temp_end;
+    //}
 
 
 
@@ -197,32 +206,32 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
-        for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
-        {
-            if( offset_list_cpu.size() == 0 )
-            {
-                set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
-            }
+        //for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
+        //{
+        //    if( offset_list_cpu.size() == 0 )
+        //    {
+        //        set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
+        //    }
 
-            else // copy over indices from offset_list to offset_begin
-            {
-                get_offset_beginning( &offset_list_cpu, &offset_begin_cpu );
-                
-                offset_list_cpu.clear();
-            }
+        //    else // copy over indices from offset_list to offset_begin
+        //    {
+        //        get_offset_beginning( &offset_list_cpu, &offset_begin_cpu );
+        //        
+        //        offset_list_cpu.clear();
+        //    }
 
-            // find offset_list_cpu 
-            compute_offsets( input, &first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
+        //    // find offset_list_cpu 
+        //    compute_offsets( input, &first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
     
-            // merge this round of batches
-            multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
-            
-            // find start_index
-            start_index = get_start_index( offset_list_cpu, K, sublist_size );
+        //    // merge this round of batches
+        //    multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
+        //    
+        //    // find start_index
+        //    start_index = get_start_index( offset_list_cpu, K, sublist_size );
 
-            // clear offset_list and offset_begin
-            offset_begin_cpu.clear();
-        }
+        //    // clear offset_list and offset_begin
+        //    offset_begin_cpu.clear();
+        //}
 
       }
             
