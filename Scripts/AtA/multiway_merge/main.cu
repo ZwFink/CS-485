@@ -154,7 +154,7 @@ int main( int argc, char **argv )
     // find remaining start and end pivot vectors for each sublist
     // TO DO: create function find_pivot_vectors() for task below
     
-	find_pivot_vectors( input, &start_vectors, &end_vectors, first_sublist_ends, &list_begin_ptrs, sublist_size );
+	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
 
 	//for( index = 0; index < list_begin_ptrs.size(); ++index )
     //{
