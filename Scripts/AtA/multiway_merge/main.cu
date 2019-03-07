@@ -251,7 +251,7 @@ int main( int argc, char **argv )
           result = create_streams( streams, STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-          result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size );
+          result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size * 2 ); // 2 because we merge out of place
           assert( result == cudaSuccess );
 
           result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
