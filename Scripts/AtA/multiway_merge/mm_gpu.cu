@@ -123,3 +123,54 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
         }
 }
 
+uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vectors,
+                               const uint64_t numCPUBatches, const int num_threads
+                             )
+{
+
+    uint64_t index       = 0;
+    uint64_t out_val     = 0;
+
+    uint64_t prev_val    = 0;
+    uint64_t inner_index = 0;
+    for( index = 0; index < end_vectors->size(); ++inner_index )
+        {
+
+            for( inner_index = 0; inner_index < numCPUBatches; ++inner_index )
+                {
+                    prev_val = out_val;
+                    
+                    // get the difference between this val and the previous
+                    // because indices are based from the start of output array
+                    out_val += (*end_vectors)[ index ][ inner_index ] - prev_val;
+
+                }
+        }
+    // out_val now contains the location of the last CPU item,
+    // incrementing it puts us at GPU start
+    return out_val + 1;
+
+}
+void copy_from_device_buffer( )
+{
+			// uint64_t deviceBufferOffset=0;
+			// for (uint64_t x=search_offsets[i]; x<search_offsets[i]+searchN; x+=PINNEDBUFFER)
+			// {
+
+			// //need to make sure that the size transfered doesn't go beyond the value of search_offsets[i]+searchN
+			// uint64_t sizeToXfer=min((uint64_t)PINNEDBUFFER, (uint64_t)((search_offsets[i]+searchN)-x));		
+			
+			
+			// cudaError_t copySearchDtoH=cudaMemcpyAsync(resultsFromBatchesPinned+(tid*PINNEDBUFFER), dev_search[gpuid]+(streamid*max_search_batch_size)+(deviceBufferOffset*PINNEDBUFFER),
+            //                                            sizeToXfer*sizeof(uint64_t), cudaMemcpyDeviceToHost, streams[gpuid][streamid]);  			
+			// assert(copySearchDtoH==cudaSuccess);
+		
+			// cudaStreamSynchronize(streams[gpuid][streamid]);																		
+			
+			// //copy to result buffer
+			// std::memcpy(result+x, resultsFromBatchesPinned+(tid*PINNEDBUFFER), sizeToXfer*sizeof(double));
+			
+		
+			// deviceBufferOffset++;
+			// }
+}
