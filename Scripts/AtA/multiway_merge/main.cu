@@ -33,8 +33,7 @@
 
 int main( int argc, char **argv )
 {
-    uint64_t index, cpu_index, gpu_index, curr_end_index = 0, piv_index, pivot_val;
-    uint64_t *temp_ptr = nullptr;
+    uint64_t index, cpu_index, gpu_index;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
