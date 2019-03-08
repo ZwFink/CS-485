@@ -240,6 +240,7 @@ int main( int argc, char **argv )
       #pragma omp section
       {
           cudaStream_t streams[ STREAMSPERGPU ];
+          const int NUM_THREADS_SEARCH = 4;
           cudaError_t result = cudaSuccess;
           uint64_t result_size = BATCH_SIZE * K * numGPUBatches;
           uint64_t stream_size = BATCH_SIZE * K;
@@ -247,6 +248,8 @@ int main( int argc, char **argv )
           uint64_t *stream_dev_ptrs         = nullptr;
           uint64_t *input_to_gpu_pinned = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
+
+          uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
 
           result = create_streams( streams, STREAMSPERGPU );
           assert( result == cudaSuccess );
@@ -263,14 +266,16 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE );
           assert( result == cudaSuccess );
 
+        uint64_t num_items_merged_gpu  = 0;
+
         for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
 
             int thread_id = omp_get_thread_num();
             int stream_id = thread_id % STREAMSPERGPU;
 
-            uint64_t start_index_gpu = 0;
-            uint64_t end_index_gpu   = 0;
+            uint64_t start_index_gpu             = 0;
+            uint64_t end_index_gpu               = 0;
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
@@ -290,18 +295,30 @@ int main( int argc, char **argv )
                 start_index_gpu = start_vectors[ index ][ gpu_index ];
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                copy_to_device_buffer( list_begin_ptrs[ index ],
+
+                copy_to_device_buffer( input,
                                        input_to_gpu_pinned, stream_dev_ptrs,
                                        streams[ stream_id ],
                                        start_index_gpu, end_index_gpu,
                                        BATCH_SIZE, thread_id, stream_id
                                      );
+            }
                 // copy data in BATCH_SIZE chunks from pinned data to gpu
                 // do pairwise merging of sublists
 
-                // copy data in BATCH_SIZE chunks from device to host 
-            }
+            for( index = 0; index < K; index++ )
+                {
+                    // copy data in BATCH_SIZE chunks from device to host 
+                    // copy_from_device_buffer( output + num_items_merged_prev,
+                    //                          result_from_batch_pinned, stream_dev_ptrs,
+                    //                          streams[ stream_id ],
+                    //                          num_items_merged_gpu,
+                    //                          BATCH_SIZE, thread_id, stream_id
+                    //                          );
+                    continue;
+                }
         }
+
       }
     }
 
