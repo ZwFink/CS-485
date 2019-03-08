@@ -150,10 +150,13 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
+
         for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
         {
+            
             // merge this round of batches
             multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
+        
         }
 
       }

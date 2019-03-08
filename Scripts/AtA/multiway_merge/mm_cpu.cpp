@@ -15,7 +15,7 @@
 void multiwayMerge( uint64_t **inputArr, 
                     uint64_t **tmpBuffer, uint64_t start_index, 
                     uint64_t sublist_size, uint64_t k, 
-                    std::vector<uint64_t> offset_begin, std::vector<uint64_t> offset_end )
+                    std::vector<uint64_t> starts, std::vector<uint64_t> ends )
 {
     uint64_t index, begin, end, total_size = 0;
 
@@ -26,7 +26,7 @@ void multiwayMerge( uint64_t **inputArr,
 
     std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
 
-    for ( index = 0; index < k; index++ )
+    for( index = 0; index < k; index++ )
     {
         begin = offset_begin[ index ];
         end = offset_end[ index ];
