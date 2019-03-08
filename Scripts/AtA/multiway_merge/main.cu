@@ -96,7 +96,6 @@ int main( int argc, char **argv )
     // initialize array of integers
     uint64_t *input      = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
     uint64_t *output_arr = (uint64_t *) malloc( sizeof( uint64_t ) * N );
-    uint64_t *tempBuff   = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
 
 	printf( "\nSeed for random number generator: %d", seed );
 	printf( "\nInput size: %lu", N );
@@ -151,12 +150,10 @@ int main( int argc, char **argv )
       #pragma omp section
       {
 
-        for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
+        for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
         {
-            
             // merge this round of batches
-            multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
-        
+            multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
         }
 
       }
@@ -188,7 +185,7 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-        for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
+        for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
 
             int thread_id = omp_get_thread_num();

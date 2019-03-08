@@ -10,39 +10,45 @@
 #include "mm_cpu.h"
 
 
-// multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
-//this multiway merges all batches at the end
+// multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
+// this multiway merges all batches at the end
 void multiwayMerge( uint64_t **inputArr, 
-                    uint64_t **tmpBuffer, uint64_t start_index, 
+                    uint64_t **output_arr, uint64_t loc, 
                     uint64_t sublist_size, uint64_t k, 
-                    std::vector<uint64_t> starts, std::vector<uint64_t> ends )
+                    std::vector< std::vector<uint64_t> > starts, 
+                    std::vector< std::vector<uint64_t> > ends )
 {
-    uint64_t index, begin, end, total_size = 0;
-
-    //temp vector for output
-    // uint64_t * tmp;
-    // tmp = new uint64_t[BATCHSIZE*(uint64_t)NUMBATCHES]; 
-    // out_vect.reserve(BATCHSIZE*NUMBATCHES);
-
+    uint64_t index, start_position = 0;
     std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
+    
+    // find position of result array (where to start placing merged batches)
+    // by summing up all start indices of k batches
+    for( index = 0; index < k; index++ )
+    {
+        start_position = start_position + starts[index][loc];
+    }
+    
+    // (start_position - k) since every start position is 1 ahead of end position
+    // and there are k start positions. Then add 1 to get position to begin.
+    if( start_position > 0 )
+    {
+        start_position = start_position - k + 1;
+    }
 
     for( index = 0; index < k; index++ )
     {
-        begin = offset_begin[ index ];
-        end = offset_end[ index ];
-        
-        // compute total size to merge
-        total_size = total_size + ( begin - end );        
-
-        seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + begin, *inputArr + end ) );
+        seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + starts[index][loc], 
+                                                                    *inputArr + ends[index][loc] ) );
     }
 
-    __gnu_parallel::multiway_merge( seqs.begin(), seqs.end(), 
-                                    *tmpBuffer + start_index, total_size, 
-                                    std::less<uint64_t>(), __gnu_parallel::parallel_tag() );
+    __gnu_parallel::multiway_merge( seqs.begin(), 
+                                    seqs.end(), 
+                                    *output_arr + start_position, 
+                                    sublist_size * k, 
+                                    std::less<uint64_t>(), 
+                                    __gnu_parallel::parallel_tag() 
+                                  );
 
-
-    
     //old with local variable
     //std::copy(tmp,tmp+(BATCHSIZE*(uint64_t)NUMBATCHES),resultsFromBatches);
 
@@ -51,12 +57,11 @@ void multiwayMerge( uint64_t **inputArr,
 
     
     //swap pointers -- avoid copying
-    uint64_t *a = *inputArr;
+    //uint64_t *a = *inputArr;
     // *inputArr + start_index = *tmpBuffer + start_index;
 
     //delete memory at end
     // delete a;
-
 
     return;
 }
