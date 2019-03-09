@@ -166,7 +166,7 @@ int main( int argc, char **argv )
           cudaError_t result = cudaSuccess;
           std::vector<uint64_t> gpu_start_ptrs;
           std::vector<uint64_t> gpu_end_ptrs;
-          uint64_t result_size = N;
+          uint64_t result_size = BATCH_SIZE * K * 2;
           uint64_t stream_size = BATCH_SIZE * K;
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
@@ -187,10 +187,10 @@ int main( int argc, char **argv )
           result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
           assert( result == cudaSuccess );
 
-          result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE );
+          result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE );
+          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
         for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
@@ -211,7 +211,7 @@ int main( int argc, char **argv )
             {
 
                 thread_id = omp_get_thread_num();
-                stream_id = thread_id % STREAMSPERGPU;
+                stream_id = gpu_index % STREAMSPERGPU;
 
                 start_index_gpu = 0;
                 end_index_gpu   = 0;
@@ -237,20 +237,30 @@ int main( int argc, char **argv )
                                        start_index_gpu, end_index_gpu,
                                        BATCH_SIZE, thread_id, stream_id
                                      );
+                gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
             }
                 // copy data in BATCH_SIZE chunks from pinned data to gpu
                 // do pairwise merging of sublists
 
+            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+                        end_index_gpu, start_vectors, end_vectors ) \
+                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
+                                 input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs \
+                               )
             for( index = 0; index < K; index++ )
                 {
+                    thread_id = omp_get_thread_num();
+                    stream_id = thread_id % STREAMSPERGPU;
+
                     // copy data in BATCH_SIZE chunks from device to host 
-                    // copy_from_device_buffer( output + num_items_merged_prev,
-                    //                          result_from_batch_pinned, stream_dev_ptrs,
-                    //                          streams[ stream_id ],
-                    //                          num_items_merged_gpu,
-                    //                          BATCH_SIZE, thread_id, stream_id
-                    //                          );
-                    continue;
+                    copy_from_device_buffer( output_arr + gpu_output_index,
+                                             result_from_batches_pinned,
+                                             output,
+                                             streams[ stream_id ],
+                                             BATCH_SIZE, thread_id, stream_id,
+                                             &gpu_start_ptrs,
+                                             &gpu_end_ptrs
+                                             );
                 }
         }
 
