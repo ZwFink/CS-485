@@ -25,15 +25,15 @@ void multiwayMerge( uint64_t **inputArr,
     // by summing up all start indices of k batches
     for( index = 0; index < k; index++ )
     {
-		if( index == 0 )
-		{
-        	start_position = start_position + starts[index][loc];
-		}
+        if( index == 0 )
+        {
+            start_position = start_position + starts[index][loc];
+        }
 	
-		else
-		{	
-			start_position = start_position + ( starts[index][loc] - (sublist_size * index) );
-		}
+        else
+        {	
+            start_position = start_position + ( starts[index][loc] - (sublist_size * index) );
+        }
 		
     }
  
