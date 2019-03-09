@@ -141,11 +141,6 @@ int main( int argc, char **argv )
 	// find remaining start and end pivot vectors for each sublist
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
 
-//	for( index = 0; index < end_vectors[1].size(); index++ )
-//	{
-//		printf( "\nbatch index: %lu\n", start_vectors[ 5 ][ index ] );
-//	}
-	
     #pragma omp parallel sections
     {
         
@@ -197,11 +192,11 @@ int main( int argc, char **argv )
             uint64_t start_index_gpu = 0;
             uint64_t end_index_gpu   = 0;
 
-            /*#pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
                         shared ( K, gpu_index, numGPUBatches, numCPUBatches, results_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output, input \
-                               ) */
+                               )
             for( index = 0; index < K; index++ )
             {
 
