@@ -207,6 +207,8 @@ int main( int argc, char **argv )
                         shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output, input \
                                )
+
+                // copy data in BATCH_SIZE chunks from pinned data to gpu
             for( index = 0; index < K; index++ )
             {
 
@@ -239,8 +241,15 @@ int main( int argc, char **argv )
                                      );
                 gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
             }
-                // copy data in BATCH_SIZE chunks from pinned data to gpu
                 // do pairwise merging of sublists
+            // merge the first two sublists, after the first merge we alternate
+            // between output buffers
+            thrust::merge( thrust::device, stream_dev_ptrs + gpu_start_ptrs[ 0 ],
+                           stream_dev_ptrs + gpu_end_ptrs[ 0 ],
+                           stream_dev_ptrs + gpu_start_ptrs[ 1 ],
+                           stream_dev_ptrs + gpu_end_ptrs[ 1 ],
+                           output
+                         );
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
