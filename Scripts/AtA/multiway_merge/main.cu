@@ -169,6 +169,7 @@ int main( int argc, char **argv )
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
           uint64_t *input_to_gpu_pinned = nullptr;
+          uint64_t *output_second = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
 
           uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
@@ -181,6 +182,7 @@ int main( int argc, char **argv )
 
           result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size * 2 ); // 2 because we merge out of place
           assert( result == cudaSuccess );
+          output_second = output + result_size;
 
           result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
           assert( result == cudaSuccess );
@@ -191,6 +193,8 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
+          uint64_t *output_after_rounds = K % 2 ? output_second : output;
+
         for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
 
@@ -199,6 +203,7 @@ int main( int argc, char **argv )
 
             uint64_t start_index_gpu             = 0;
             uint64_t end_index_gpu               = 0;
+            uint64_t merged_this_round = 0;
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
@@ -246,6 +251,32 @@ int main( int argc, char **argv )
                            stream_dev_ptrs + gpu_end_ptrs[ 1 ],
                            output
                          );
+            merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
+                                gpu_end_ptrs[ 1 ] - gpu_start_ptrs[ 1 ];
+
+            for( index = 2; index < K; ++index )
+                {
+                    if( index % 2 )
+                        {
+                            thrust::merge( thrust::device,
+                                           output, output  + merged_this_round,
+                                           stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                           stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                           output_second
+                                         );
+                        }
+                    else
+                        {
+                            thrust::merge( thrust::device,
+                                           output_second, output_second + merged_this_round,
+                                           stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                           stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                           output
+                                         );
+                        }
+
+                    merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
+                }
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
@@ -260,12 +291,12 @@ int main( int argc, char **argv )
                     // copy data in BATCH_SIZE chunks from device to host 
                     copy_from_device_buffer( output_arr + gpu_output_index,
                                              result_from_batches_pinned,
-                                             output,
+                                             output_after_rounds,
                                              streams[ stream_id ],
                                              BATCH_SIZE, thread_id, stream_id,
                                              &gpu_start_ptrs,
                                              &gpu_end_ptrs
-                                             );
+                                           );
                 }
         }
 
