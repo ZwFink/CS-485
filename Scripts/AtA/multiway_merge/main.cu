@@ -136,6 +136,7 @@ int main( int argc, char **argv )
 	// find remaining start and end pivot vectors for each sublist
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
 
+//  FOR TESTING PURPOSES
 //	for( index = 0; index < end_vectors[1].size(); index++ )
 //	{
 //		printf( "\nbatch index: %lu\n", start_vectors[ 5 ][ index ] );
