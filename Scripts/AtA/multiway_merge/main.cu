@@ -175,7 +175,7 @@ int main( int argc, char **argv )
           uint64_t *output_second = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
 
-          tstargpu = omp_get_wtime();
+          tstartgpu = omp_get_wtime();
 
           uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
 
@@ -313,18 +313,18 @@ int main( int argc, char **argv )
 	double tendhybrid = omp_get_wtime();
 
     double hybrid_total_time = tendhybrid - tstarthybrid;
-    double cpu_total_time    = tendcpu    - tstarcpu;
+    double cpu_total_time    = tendcpu    - tstartcpu;
     double gpu_total_time    = tendgpu    - tstartgpu;
 
     // formula given in paper
     double load_imbalance    = ( cpu_total_time - gpu_total_time ) / hybrid_total_time;
        
 
-    printf( "Time CPU and GPU: %f\n", tstarthybrid - tendhybrid );
-    printf( "Time CPU Only: %f\n", );
-    printf( "Time GPU Only: %f\n", );
+    printf( "Time CPU and GPU (total time): %f\n", hybrid_total_time );
+    printf( "Time CPU Only: %f\n", cpu_total_time );
+    printf( "Time GPU Only: %f\n", gpu_total_time );
 
-    printf( "Load imbalance: %f\n", );
+    printf( "Load imbalance: %f\n", load_imbalance );
     free( input );
     free( output_arr );
 
