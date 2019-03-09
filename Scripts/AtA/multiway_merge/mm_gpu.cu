@@ -151,26 +151,42 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
     return out_val + 1;
 
 }
-void copy_from_device_buffer( )
+void copy_from_device_buffer( uint64_t *output_buffer,
+                              uint64_t *pinned_buff, 
+                              uint64_t *dev_ptr,
+                              cudaStream_t stream,
+                              uint64_t BATCH_SIZE,
+                              int thread_id, int stream_id,
+                              std::vector<uint64_t> *start_ptrs,
+                              std::vector<uint64_t> *end_ptrs
+                              )
 {
-			// uint64_t deviceBufferOffset=0;
-			// for (uint64_t x=search_offsets[i]; x<search_offsets[i]+searchN; x+=PINNEDBUFFER)
-			// {
 
-			// //need to make sure that the size transfered doesn't go beyond the value of search_offsets[i]+searchN
-			// uint64_t sizeToXfer=min((uint64_t)PINNEDBUFFER, (uint64_t)((search_offsets[i]+searchN)-x));		
-			
-			
-			// cudaError_t copySearchDtoH=cudaMemcpyAsync(resultsFromBatchesPinned+(tid*PINNEDBUFFER), dev_search[gpuid]+(streamid*max_search_batch_size)+(deviceBufferOffset*PINNEDBUFFER),
-            //                                            sizeToXfer*sizeof(uint64_t), cudaMemcpyDeviceToHost, streams[gpuid][streamid]);  			
-			// assert(copySearchDtoH==cudaSuccess);
-		
-			// cudaStreamSynchronize(streams[gpuid][streamid]);																		
-			
-			// //copy to result buffer
-			// std::memcpy(result+x, resultsFromBatchesPinned+(tid*PINNEDBUFFER), sizeToXfer*sizeof(double));
-			
-		
-			// deviceBufferOffset++;
-			// }
+
+    uint64_t start_index = (*start_ptrs)[ thread_id ];
+    uint64_t end_index   = (*end_ptrs)[ thread_id ];
+    uint64_t to_transfer = 0;
+    uint64_t offset      = 0;
+    uint64_t transferred = 0;
+    uint64_t offset_index = thread_id;
+
+    while( offset_index > 0 )
+        {
+            offset += (*end_ptrs)[ offset_index ];
+            offset_index--;
+        }
+    
+    for( ; start_index < end_index; start_index += BATCH_SIZE )
+        {
+
+            to_transfer = std::min( BATCH_SIZE, end_index - start_index );
+
+            cudaMemcpyAsync(  pinned_buff + ( thread_id * BATCH_SIZE ), dev_ptr + to_transfer, to_transfer * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
+
+            cudaStreamSynchronize( stream );
+
+            std::memcpy( output_buffer + offset_index + transferred, pinned_buff + ( thread_id * BATCH_SIZE ), to_transfer * sizeof( uint64_t ) );
+
+            transferred += to_transfer;
+        }
 }

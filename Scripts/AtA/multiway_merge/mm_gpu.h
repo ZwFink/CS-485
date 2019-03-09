@@ -12,5 +12,14 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
 uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vectors,
                                const uint64_t numCPUBatches, const int num_threads
                                );
+void copy_from_device_buffer( uint64_t *output_buffer,
+                              uint64_t *pinned_buff, 
+                              uint64_t *dev_ptr,
+                              cudaStream_t stream,
+                              uint64_t BATCH_SIZE,
+                              int thread_id, int stream_id,
+                              std::vector<uint64_t> *start_ptrs,
+                              std::vector<uint64_t> *end_ptrs
+                              );
 #endif // MM_GPU_HH_INCLUDED
 
