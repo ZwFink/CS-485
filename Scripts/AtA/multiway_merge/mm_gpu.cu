@@ -95,6 +95,7 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
     uint64_t data_copied_total = 0;
     uint64_t write_index       = 0;
 
+
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
             // want to make sure that we don't copy extra data
@@ -104,13 +105,12 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
             data_copied        = end_index_actual - start_index;
             data_copied_total += data_copied;
 
-
             std::memcpy( pinned_host + ( thread_id * data_copied_total ),
                          input + copy_index,
                          data_copied * sizeof( uint64_t )
                        );
 
-            cudaMemcpyAsync( device_ptr  + ( thread_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
+            cudaMemcpyAsync( device_ptr  + ( stream_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
                              pinned_host + ( thread_id * data_copied_total ),
                              data_copied * sizeof( uint64_t ),
                              cudaMemcpyHostToDevice, stream

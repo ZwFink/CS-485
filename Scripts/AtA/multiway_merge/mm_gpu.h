@@ -11,7 +11,6 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
                           );
 uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vectors,
                                const uint64_t numCPUBatches, const int num_threads
-                             );
-
+                               );
 #endif // MM_GPU_HH_INCLUDED
 
