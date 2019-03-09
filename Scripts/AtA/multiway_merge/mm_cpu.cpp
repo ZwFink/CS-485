@@ -62,67 +62,6 @@ void multiwayMerge( uint64_t **inputArr,
 }
 
 
-//Deprecated: better to use the normal merge for pairs of batches
-
-//this one merges give sets of ranges of the batches, e.g., [50,100) [100,150)
-// void mergeConsumerMultiwayWithRanges(uint64_t * resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2 )
-
-void mergeConsumerMultiwayWithRanges(uint64_t ** resultsFromBatches, uint64_t lower1, uint64_t upper1,uint64_t lower2, uint64_t upper2)
-{
-    
-
-    
-    // if (upper1!=lower2)
-    // fprintf(stderr,"\nerror, the two ranges do not have the same value between the upper1/lower2: %d,%d ",upper1,lower2);   
-
-    
-    
-    //original in place:
-    // std::inplace_merge(resultsFromBatches+lower1,resultsFromBatches+(upper1),resultsFromBatches+(upper2));
-
-    
-    //tmp vector:
-    //not in place:
-    
-    uint64_t * tmpBuffer;
-
-    uint64_t distance = upper2 - lower1;
-
-    std::vector<std::pair<uint64_t *, uint64_t*> > seqs;
-
-
-    seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(lower1),*resultsFromBatches+(upper1)));
-    seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(lower2),*resultsFromBatches+(upper2)));
-    
-
-    tmpBuffer=new uint64_t[distance];
-
-    printf("\nDistance in merge consumer multiway: %lu",distance);
-
-    // __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), *tmpBuffer, distance, std::less<uint64_t>(), __gnu_parallel::parallel_tag());
-    __gnu_parallel::multiway_merge(seqs.begin(), seqs.end(), tmpBuffer, distance, std::less<uint64_t>(), __gnu_parallel::parallel_tag());
-
-
-    std::copy(tmpBuffer,tmpBuffer+ distance,*resultsFromBatches+lower1);
-
-    delete [] tmpBuffer;
-    
-
-     // std::vector<std::pair<uint64_t *, uint64_t*> > seqs;
-    
-    // for (uint64_t i=0; i<2; i++){
-        // seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(resultsFromBatches+(i*BATCHSIZE),resultsFromBatches+((i+1)*BATCHSIZE)));
-        // seqs.push_back(std::make_pair<uint64_t*,uint64_t* >(*resultsFromBatches+(i*BATCHSIZE),*resultsFromBatches+((i+1)*BATCHSIZE)));
-    // }
-
-    
- 
-    
-
-}
-
-
-
 //void testMultiwayMerge()
 //{
 //    //http://manpages.ubuntu.com/manpages/zesty/man3/__gnu_parallel.3cxx.html

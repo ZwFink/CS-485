@@ -8,6 +8,4 @@ void multiwayMerge( uint64_t **inputArr,
                     std::vector< std::vector<uint64_t> > starts, 
                     std::vector< std::vector<uint64_t> > ends );
 
-void mergeConsumerMultiwayWithRanges(double ** resultsFromBatches, uint64_t lower1, uint64_t upper1, uint64_t lower2, uint64_t upper2);
-
 #endif // MM_CPU_HH_INCLUDED
