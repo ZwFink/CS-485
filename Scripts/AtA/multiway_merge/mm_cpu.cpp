@@ -25,9 +25,19 @@ void multiwayMerge( uint64_t **inputArr,
     // by summing up all start indices of k batches
     for( index = 0; index < k; index++ )
     {
-        start_position = start_position + starts[index][loc];
+		if( index == 0 )
+		{
+        	start_position = start_position + starts[index][loc];
+		}
+	
+		else
+		{	
+			start_position = start_position + ( starts[index][loc] - (sublist_size * index) );
+		}
+		
+	//	printf( "\nstarts[%d][%lu] = %lu\n", index, loc, starts[index][loc] );
     }
-    
+ 
     // (start_position - k) since every start position is 1 ahead of end position
     // from previous and there are k start positions. Then add 1 to get position to begin.
     if( start_position > 0 )
