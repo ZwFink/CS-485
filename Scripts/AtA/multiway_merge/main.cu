@@ -109,6 +109,12 @@ int main( int argc, char **argv )
 	
 	//start hybrid CPU + GPU total time timer
 	double tstarthybrid = omp_get_wtime();
+
+    double tstartgpu    = 0;
+    double tendgpu      = 0;
+
+    double tstartcpu    = 0;
+    double tendcpu      = 0;
    
     // compute the number of batches
 	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE, sublist_size );
@@ -144,12 +150,13 @@ int main( int argc, char **argv )
       #pragma omp section
       {
 
-        for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
-        {
-            // merge this round of batches
-            multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
-        }
-
+          tstartcpu = omp_get_wtime();
+          for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
+              {
+                  // merge this round of batches
+                  multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
+              }
+          tendcpu = omp_get_wtime();
       }
             
       // BEGIN GPU SECTION
@@ -167,6 +174,8 @@ int main( int argc, char **argv )
           uint64_t *input_to_gpu_pinned = nullptr;
           uint64_t *output_second = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
+
+          tstargpu = omp_get_wtime();
 
           uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
 
@@ -295,11 +304,27 @@ int main( int argc, char **argv )
                                            );
                 }
         }
+
+        tendgpu = omp_get_wtime();
       }
     }
 
     // end hybrid CPU + GPU total time timer
 	double tendhybrid = omp_get_wtime();
+
+    double hybrid_total_time = tendhybrid - tstarthybrid;
+    double cpu_total_time    = tendcpu    - tstarcpu;
+    double gpu_total_time    = tendgpu    - tstartgpu;
+
+    // formula given in paper
+    double load_imbalance    = ( cpu_total_time - gpu_total_time ) / hybrid_total_time;
+       
+
+    printf( "Time CPU and GPU: %f\n", tstarthybrid - tendhybrid );
+    printf( "Time CPU Only: %f\n", );
+    printf( "Time GPU Only: %f\n", );
+
+    printf( "Load imbalance: %f\n", );
     free( input );
     free( output_arr );
 
