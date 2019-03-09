@@ -10,8 +10,7 @@
 #include "mm_cpu.h"
 
 
-// multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
-// this multiway merges all batches at the end
+// this multiway merges particular batches determined by location (loc) parameter
 void multiwayMerge( uint64_t **inputArr, 
                     uint64_t **output_arr, uint64_t loc, 
                     uint64_t sublist_size, uint64_t k, 
