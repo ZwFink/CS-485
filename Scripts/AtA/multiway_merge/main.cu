@@ -136,12 +136,6 @@ int main( int argc, char **argv )
 	// find remaining start and end pivot vectors for each sublist
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
 
-//  FOR TESTING PURPOSES
-//	for( index = 0; index < end_vectors[1].size(); index++ )
-//	{
-//		printf( "\nbatch index: %lu\n", start_vectors[ 5 ][ index ] );
-//	}
-	
     #pragma omp parallel sections
     {
         
@@ -161,19 +155,29 @@ int main( int argc, char **argv )
       #pragma omp section
       {
           cudaStream_t streams[ STREAMSPERGPU ];
+          const int NUM_THREADS_SEARCH = 4;
           cudaError_t result = cudaSuccess;
-          uint64_t result_size = BATCH_SIZE * K * numGPUBatches;
+          std::vector<uint64_t> gpu_start_ptrs;
+          std::vector<uint64_t> gpu_end_ptrs;
+          uint64_t result_size = BATCH_SIZE * K * 2;
           uint64_t stream_size = BATCH_SIZE * K;
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
           uint64_t *input_to_gpu_pinned = nullptr;
+          uint64_t *output_second = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
+
+          uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
+
+          gpu_start_ptrs.reserve( K );
+          gpu_end_ptrs.reserve( K );
 
           result = create_streams( streams, STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-          result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size );
+          result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size * 2 ); // 2 because we merge out of place
           assert( result == cudaSuccess );
+          output_second = output + result_size;
 
           result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
           assert( result == cudaSuccess );
@@ -181,8 +185,10 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
 
-          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE * STREAMSPERGPU );
+          result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
           assert( result == cudaSuccess );
+
+          uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
         for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
@@ -190,19 +196,20 @@ int main( int argc, char **argv )
             int thread_id = omp_get_thread_num();
             int stream_id = thread_id % STREAMSPERGPU;
 
-            uint64_t start_index_gpu = 0;
-            uint64_t end_index_gpu   = 0;
+            uint64_t start_index_gpu             = 0;
+            uint64_t end_index_gpu               = 0;
+            uint64_t merged_this_round = 0;
 
-            /*#pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
-                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, results_from_batches_pinned, \
+                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output, input \
-                               ) */
+                               )
             for( index = 0; index < K; index++ )
             {
 
                 thread_id = omp_get_thread_num();
-                stream_id = thread_id % STREAMSPERGPU;
+                stream_id = gpu_index % STREAMSPERGPU;
 
                 start_index_gpu = 0;
                 end_index_gpu   = 0;
@@ -211,16 +218,81 @@ int main( int argc, char **argv )
                 start_index_gpu = start_vectors[ index ][ gpu_index ];
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                copy_to_device_buffer( input, input_to_gpu_pinned, stream_dev_ptrs,
+                // calculate relative start
+                gpu_start_ptrs[ index ] = gpu_index == numCPUBatches + 1 ? \
+                                          0 : \
+                                          start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
+
+                // calculate relative end index
+                gpu_end_ptrs[ index ]   = gpu_index == numCPUBatches + 1 ? \
+                                          start_vectors[ index ][ gpu_index ] - 1 : \
+                                          end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
+
+
+                copy_to_device_buffer( input,
+                                       input_to_gpu_pinned, stream_dev_ptrs,
                                        streams[ stream_id ],
                                        start_index_gpu, end_index_gpu,
                                        BATCH_SIZE, thread_id, stream_id
                                      );
-                // copy data in BATCH_SIZE chunks from pinned data to gpu
-                // do pairwise merging of sublists
-
-                // copy data in BATCH_SIZE chunks from device to host 
+                gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
             }
+                // do pairwise merging of sublists
+            // merge the first two sublists, after the first merge we alternate
+            // between output buffers
+            thrust::merge( thrust::device, stream_dev_ptrs + gpu_start_ptrs[ 0 ],
+                           stream_dev_ptrs + gpu_end_ptrs[ 0 ],
+                           stream_dev_ptrs + gpu_start_ptrs[ 1 ],
+                           stream_dev_ptrs + gpu_end_ptrs[ 1 ],
+                           output
+                         );
+            merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
+                                gpu_end_ptrs[ 1 ] - gpu_start_ptrs[ 1 ];
+
+            for( index = 2; index < K; ++index )
+                {
+                    if( index % 2 )
+                        {
+                            thrust::merge( thrust::device,
+                                           output, output  + merged_this_round,
+                                           stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                           stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                           output_second
+                                         );
+                        }
+                    else
+                        {
+                            thrust::merge( thrust::device,
+                                           output_second, output_second + merged_this_round,
+                                           stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                           stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                           output
+                                         );
+                        }
+
+                    merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
+                }
+
+            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+                        end_index_gpu, start_vectors, end_vectors ) \
+                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
+                                 input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs \
+                               )
+            for( index = 0; index < K; index++ )
+                {
+                    thread_id = omp_get_thread_num();
+                    stream_id = thread_id % STREAMSPERGPU;
+
+                    // copy data in BATCH_SIZE chunks from device to host 
+                    copy_from_device_buffer( output_arr + gpu_output_index,
+                                             result_from_batches_pinned,
+                                             output_after_rounds,
+                                             streams[ stream_id ],
+                                             BATCH_SIZE, thread_id, stream_id,
+                                             &gpu_start_ptrs,
+                                             &gpu_end_ptrs
+                                           );
+                }
         }
       }
     }
