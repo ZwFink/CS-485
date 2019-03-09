@@ -164,7 +164,9 @@ int main( int argc, char **argv )
           cudaStream_t streams[ STREAMSPERGPU ];
           const int NUM_THREADS_SEARCH = 4;
           cudaError_t result = cudaSuccess;
-          uint64_t result_size = BATCH_SIZE * K * numGPUBatches;
+          std::vector<uint64_t> gpu_start_ptrs;
+          std::vector<uint64_t> gpu_end_ptrs;
+          uint64_t result_size = N;
           uint64_t stream_size = BATCH_SIZE * K;
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
@@ -172,6 +174,9 @@ int main( int argc, char **argv )
           uint64_t *result_from_batches_pinned = nullptr;
 
           uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
+
+          gpu_start_ptrs.reserve( K );
+          gpu_end_ptrs.reserve( K );
 
           result = create_streams( streams, STREAMSPERGPU );
           assert( result == cudaSuccess );
@@ -214,6 +219,16 @@ int main( int argc, char **argv )
                 // copy data in BATCH_SIZE chunks from host memory to pinned memory
                 start_index_gpu = start_vectors[ index ][ gpu_index ];
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
+
+                // calculate relative start
+                gpu_start_ptrs[ index ] = gpu_index == numCPUBatches + 1 ? \
+                                          0 : \
+                                          start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
+
+                // calculate relative end index
+                gpu_end_ptrs[ index ]   = gpu_index == numCPUBatches + 1 ? \
+                                          start_vectors[ index ][ gpu_index ] - 1 : \
+                                          end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
 
 
                 copy_to_device_buffer( input,
