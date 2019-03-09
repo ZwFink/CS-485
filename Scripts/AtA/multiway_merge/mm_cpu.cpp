@@ -35,7 +35,6 @@ void multiwayMerge( uint64_t **inputArr,
 			start_position = start_position + ( starts[index][loc] - (sublist_size * index) );
 		}
 		
-	//	printf( "\nstarts[%d][%lu] = %lu\n", index, loc, starts[index][loc] );
     }
  
     // (start_position - k) since every start position is 1 ahead of end position
@@ -58,20 +57,6 @@ void multiwayMerge( uint64_t **inputArr,
                                     std::less<uint64_t>(), 
                                     __gnu_parallel::parallel_tag() 
                                   );
-
-    //old with local variable
-    //std::copy(tmp,tmp+(BATCHSIZE*(uint64_t)NUMBATCHES),resultsFromBatches);
-
-    //new copy with the buffer
-    // std::copy(*tmpBuffer,*tmpBuffer+(BATCHSIZE*(uint64_t)NUMBATCHES),*resultsFromBatches);
-
-    
-    //swap pointers -- avoid copying
-    //uint64_t *a = *inputArr;
-    // *inputArr + start_index = *tmpBuffer + start_index;
-
-    //delete memory at end
-    // delete a;
 
     return;
 }
