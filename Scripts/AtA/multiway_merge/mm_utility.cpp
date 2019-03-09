@@ -29,11 +29,11 @@
 	
 
 void find_pivot_vectors( uint64_t *input, 
-						 std::vector<std::vector<uint64_t>> *start_vectors, 
-						 std::vector<std::vector<uint64_t>> *end_vectors, 
-						 std::vector<uint64_t> *first_sublist_ends, 
-						 std::vector<uint64_t *> *list_begin_ptrs, 
-						 uint64_t sublist_size )
+                         std::vector<std::vector<uint64_t>> *start_vectors, 
+                         std::vector<std::vector<uint64_t>> *end_vectors, 
+                         std::vector<uint64_t> *first_sublist_ends, 
+                         std::vector<uint64_t *> *list_begin_ptrs, 
+                         uint64_t sublist_size )
 {
 	uint64_t index, piv_index, curr_end_index, sublist_begin;
 	uint64_t *temp_ptr = nullptr;
@@ -41,12 +41,12 @@ void find_pivot_vectors( uint64_t *input,
 	std::vector<uint64_t> temp_start;
 	std::vector<uint64_t> temp_end;	
 
-	for( index = 1; index < list_begin_ptrs->size(); ++index )
+    for( index = 1; index < list_begin_ptrs->size(); ++index )
     {
-		temp_start.clear();
-		temp_end.clear();		
+        temp_start.clear();
+        temp_end.clear();		
 		
-		sublist_begin = thrust::distance( input, (*list_begin_ptrs)[ index ] );	
+        sublist_begin = thrust::distance( input, (*list_begin_ptrs)[ index ] );	
 
         for( piv_index = 0; piv_index < first_sublist_ends->size() - 1; ++piv_index )
         {
@@ -74,7 +74,7 @@ void find_pivot_vectors( uint64_t *input,
         }
 
         temp_start.push_back( temp_end[ piv_index - 1 ] + 1 );
-		temp_end.push_back( sublist_begin + sublist_size - 1 );
+        temp_end.push_back( sublist_begin + sublist_size - 1 );
 
         start_vectors->push_back( temp_start );
         end_vectors->push_back( temp_end );
