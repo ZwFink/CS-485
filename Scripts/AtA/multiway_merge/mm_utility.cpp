@@ -46,9 +46,9 @@ void find_pivot_vectors( uint64_t *input,
 		temp_start.clear();
 		temp_end.clear();		
 
-        for( piv_index = 0; piv_index < first_sublist_ends->size(); ++piv_index )
+        for( piv_index = 0; piv_index < first_sublist_ends->size() - 1; ++piv_index )
         {
-            pivot_val = (*first_sublist_ends)[ piv_index ];
+            pivot_val = input[ (*first_sublist_ends)[ piv_index ] ];
     
             temp_ptr = std::upper_bound( 
                                          input + *((*list_begin_ptrs)[ index ]), 
@@ -58,18 +58,20 @@ void find_pivot_vectors( uint64_t *input,
 
             curr_end_index = thrust::distance( input, temp_ptr );
 
-            temp_end[ piv_index ] = curr_end_index - 1;
+            temp_end.push_back( curr_end_index - 1 );
 
             if( piv_index == 0 )
             {
-                temp_start[ piv_index ] = *((*list_begin_ptrs)[ index ]);
+                temp_start.push_back( *((*list_begin_ptrs)[ index ]) );
             }
 
             else
             {
-                temp_start[ piv_index ] = temp_end[ piv_index - 1 ] + 1;
+                temp_start.push_back( temp_end[ piv_index - 1 ] + 1 );
             }
         }
+
+		temp_end.push_back( *((*list_begin_ptrs)[index]) + sublist_size );
 
         start_vectors->push_back( temp_start );
         end_vectors->push_back( temp_end );
@@ -77,26 +79,24 @@ void find_pivot_vectors( uint64_t *input,
 }
 
 
-void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize )
+void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize, uint64_t sublist_size )
 {
     uint64_t index = 0;
 
-	 uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
-	 //given the input batch size and N, recompute the batch size (apporximate)
-	 uint64_t batchSizeApprox = N / numBatches;
+    uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
+	//given the input batch size and N, recompute the batch size (apporximate)
+	uint64_t batchSizeApprox = N / numBatches;
 
-	 printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
+	printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
 
-	 //split the input array based on the approximate batch size
+	//split the input array based on the approximate batch size
+	batch_offsets->push_back( index );	
 
-	 // the first offset is index 0
-	 batch_offsets->push_back( index );
-
-	 // -1 because the last pivot is the end of the array N-1
-	 for( index = batchSizeApprox - 1; index < numBatches - 1 ; index = index + batchSizeApprox )
-     {
-        batch_offsets->push_back( index );
-	 }
+	// -1 because the last pivot is the end of the array N-1
+	for( index = batchSizeApprox - 1; index < sublist_size - 1; index = index + batchSizeApprox )
+    {
+       batch_offsets->push_back( index );
+	}
 
 	batch_offsets->push_back( N - 1 );
 }

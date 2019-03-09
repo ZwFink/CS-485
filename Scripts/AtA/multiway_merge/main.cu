@@ -33,7 +33,7 @@
 
 int main( int argc, char **argv )
 {
-    uint64_t index, cpu_index, gpu_index, iter;
+    uint64_t index, cpu_index, gpu_index;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
@@ -113,9 +113,9 @@ int main( int argc, char **argv )
 	
 	//start hybrid CPU + GPU total time timer
 	double tstarthybrid = omp_get_wtime();
-    
+   
     // compute the number of batches
-	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE );
+	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE, sublist_size );
 	
     // split the data between CPU and GPU for hybrid searches
 	numCPUBatches = ( first_sublist_ends.size() - 1 ) * CPUFRAC;
@@ -129,18 +129,22 @@ int main( int argc, char **argv )
     first_sublist_ends.erase( first_sublist_ends.begin() );
     
     // find start pivots for first sublist
-	iter = 0;
-    for( index = 0; index < N; index = index + BATCH_SIZE )
+    for( index = 0; index < sublist_size; index = index + BATCH_SIZE )
     {
-        first_sublist_starts[ iter ] = index;
-		iter++;
+        first_sublist_starts.push_back( index );
     }    
     
-    start_vectors[0] = first_sublist_starts;
-    end_vectors[0] = first_sublist_ends;
+    start_vectors.push_back( first_sublist_starts );
+    end_vectors.push_back( first_sublist_ends );
 
-    // find remaining start and end pivot vectors for each sublist
+    
+	// find remaining start and end pivot vectors for each sublist
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
+
+	for( index = 0; index < end_vectors[1].size(); index++ )
+	{
+		printf( "\nbatch index: %lu\n", end_vectors[ 1 ][ index ] );
+	}
 
 
     #pragma omp parallel sections
@@ -194,11 +198,11 @@ int main( int argc, char **argv )
             uint64_t start_index_gpu = 0;
             uint64_t end_index_gpu   = 0;
 
-            #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
+            /*#pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
                         shared ( K, gpu_index, numGPUBatches, numCPUBatches, results_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output, input \
-                               )
+                               ) */
             for( index = 0; index < K; index++ )
             {
 
