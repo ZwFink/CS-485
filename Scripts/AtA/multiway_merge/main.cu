@@ -60,8 +60,6 @@ int main( int argc, char **argv )
 	}
 	
 	//copy parameters from commandline:
-	//char inputFname[]="data/test_data_removed_nan.txt";	
-	
 	char inputseed[ 500 ];
 	strcpy( inputseed, argv[ 1 ] );
 
@@ -73,7 +71,6 @@ int main( int argc, char **argv )
 	
 	unsigned int seed = atoi( inputseed );
 	
-	// uint64_t N=atoi(inputN);
 	uint64_t N = strtoull( inputN, NULL, 0 );
 
 	uint64_t BATCH_SIZE = strtoull( inputBatchSize, NULL, 0 );
@@ -86,8 +83,6 @@ int main( int argc, char **argv )
     std::vector<uint64_t> first_sublist_starts;
     std::vector<uint64_t> first_sublist_ends;
     std::vector<uint64_t *> list_begin_ptrs; 
-    std::vector<uint64_t> temp_start;
-	std::vector<uint64_t> temp_end;
     // start and end vectors containing start and end
     // pivot vectors for each sublist
     std::vector<std::vector<uint64_t>> start_vectors;
