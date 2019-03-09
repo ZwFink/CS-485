@@ -33,8 +33,7 @@
 
 int main( int argc, char **argv )
 {
-    uint64_t index, cpu_index, gpu_index, curr_end_index = 0, piv_index, pivot_val;
-    uint64_t *temp_ptr = nullptr;
+    uint64_t index, cpu_index, gpu_index, iter;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
@@ -82,20 +81,8 @@ int main( int argc, char **argv )
 	uint16_t K = strtoul( argv[ 4 ], NULL, 0 );
 
     uint64_t sublist_size = N / K;
-
-	printf( "\nSeed for random number generator: %d", seed );
-	printf( "\nInput size: %lu", N );
-	printf( "\nBatch size: %lu\n", BATCH_SIZE );
-    printf( "K (number of sublists): %u\n", K );
-
-    // offset vectors  (NEEDS TO BE DELETED)
-	//std::vector<uint64_t> first_sublist_pivots;
-    //std::vector<uint64_t> offset_list_cpu;
-    std::vector<uint64_t> offset_list_gpu;
-    //std::vector<uint64_t> offset_begin_cpu;
-    std::vector<uint64_t> offset_begin_gpu;
-    
-	// helper vectors
+	
+    // helper vectors
     std::vector<uint64_t> first_sublist_starts;
     std::vector<uint64_t> first_sublist_ends;
     std::vector<uint64_t *> list_begin_ptrs; 
@@ -109,8 +96,11 @@ int main( int argc, char **argv )
     // initialize array of integers
     uint64_t *input      = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
     uint64_t *output_arr = (uint64_t *) malloc( sizeof( uint64_t ) * N );
-    uint64_t *tempBuff   = ( uint64_t * ) malloc( sizeof( uint64_t ) * N );
 
+	printf( "\nSeed for random number generator: %d", seed );
+	printf( "\nInput size: %lu", N );
+	printf( "\nBatch size: %lu\n", BATCH_SIZE );
+    printf( "K (number of sublists): %u\n", K );
 
     printf( "\nTotal size of input sorted array (MiB): %f", ((double) N * (sizeof(uint64_t)))/(1024.0*1024.0) );
 
@@ -121,13 +111,10 @@ int main( int argc, char **argv )
 
 	printf( "\nTime to create K sorted sublists (not part of performance measurements): %f\n", tendsort - tstartsort );
 	
-
 	//start hybrid CPU + GPU total time timer
 	double tstarthybrid = omp_get_wtime();
     
     // compute the number of batches
-	// The number of batches should ensure that the input dataset is split at one point
-	// The input batch size is thus an approximation
 	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE );
 	
     // split the data between CPU and GPU for hybrid searches
@@ -142,7 +129,7 @@ int main( int argc, char **argv )
     first_sublist_ends.erase( first_sublist_ends.begin() );
     
     // find start pivots for first sublist
-	uint64_t iter = 0;
+	iter = 0;
     for( index = 0; index < N; index = index + BATCH_SIZE )
     {
         first_sublist_starts[ iter ] = index;
@@ -153,53 +140,8 @@ int main( int argc, char **argv )
     end_vectors[0] = first_sublist_ends;
 
     // find remaining start and end pivot vectors for each sublist
-    // TO DO: create function find_pivot_vectors() for task below
-    
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
 
-	//for( index = 0; index < list_begin_ptrs.size(); ++index )
-    //{
-    //    // create sublist pivot starts and pivot ends
-    //    //temp_start = new std::vector<uint64_t>;
-    //    //temp_end = new std::vector<uint64_t>;
-	//	temp_start.clear();
-	//	temp_end.clear();		
-
-
-    //    for( piv_index = 0; piv_index < first_sublist_starts.size(); ++piv_index )
-    //    {
-    //        pivot_val = first_sublist_ends[ piv_index ];
-    //
-    //        temp_ptr = std::upper_bound( 
-    //                                list_begin_ptrs + index, 
-    //                                list_begin_ptrs + index + (sublist_size - 1), 
-    //                                pivot_val 
-    //                              );
-
-    //        curr_end_index = thrust::distance( list_begin_ptrs, temp_ptr );
-
-    //        temp_end->push_back( curr_end_index );
-
-    //        if( piv_index == 0 )
-    //        {
-    //            temp_start->push_back( (*list_begin_ptrs)[ index ] );
-    //        }
-
-    //        else
-    //        {
-    //            temp_start->push_back( temp_end[ piv_index - 1 ] );
-    //        }
-    //    }
-
-    //    start_vectors[ index ] = temp_start;
-    //    end_vectors[ index ] = temp_end;
-    //}
-
-
-
-
-
-	
 
     #pragma omp parallel sections
     {
@@ -207,32 +149,12 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
-        //for( cpu_index = 1; cpu_index <= numCPUBatches; ++cpu_index )
-        //{
-        //    if( offset_list_cpu.size() == 0 )
-        //    {
-        //        set_beginning_of_offsets( &offset_begin_cpu, sublist_size, K );
-        //    }
 
-        //    else // copy over indices from offset_list to offset_begin
-        //    {
-        //        get_offset_beginning( &offset_list_cpu, &offset_begin_cpu );
-        //        
-        //        offset_list_cpu.clear();
-        //    }
-
-        //    // find offset_list_cpu 
-        //    compute_offsets( input, &first_sublist_offsets, &offset_list_cpu, cpu_index, K, sublist_size ); 
-    
-        //    // merge this round of batches
-        //    multiwayMerge( &input, &tempBuff, start_index, sublist_size, K, offset_begin_cpu, offset_list_cpu );
-        //    
-        //    // find start_index
-        //    start_index = get_start_index( offset_list_cpu, K, sublist_size );
-
-        //    // clear offset_list and offset_begin
-        //    offset_begin_cpu.clear();
-        //}
+        for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
+        {
+            // merge this round of batches
+            multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
+        }
 
       }
             
@@ -266,9 +188,7 @@ int main( int argc, char **argv )
           result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t * ) * BATCH_SIZE );
           assert( result == cudaSuccess );
 
-        uint64_t num_items_merged_gpu  = 0;
-
-        for( gpu_index = numCPUBatches + 1 ; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
+        for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
         {
 
             int thread_id = omp_get_thread_num();
