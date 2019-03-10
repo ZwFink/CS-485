@@ -232,14 +232,13 @@ int main( int argc, char **argv )
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
                 // calculate relative start
-                gpu_start_ptrs[ index ] = gpu_index == numCPUBatches + 1 ? \
-                                          0 : \
-                                          start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
+                gpu_start_ptrs[ index ] = ( index == 0 ) ?  \
+                    0 : start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
 
                 // calculate relative end index
-                gpu_end_ptrs[ index ]   = gpu_index == numCPUBatches + 1 ? \
-                                          start_vectors[ index ][ gpu_index ] - 1 : \
-                                          end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
+                gpu_end_ptrs[ index ]   = ( index == 0 ) ?              \
+                    start_vectors[ index + 1 ][ gpu_index ] - 1 :       \
+                    end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
 
 
                 copy_to_device_buffer( input,
