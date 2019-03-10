@@ -133,7 +133,7 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
 
     uint64_t prev_val    = 0;
     uint64_t inner_index = 0;
-    for( index = 0; index < end_vectors->size(); ++inner_index )
+    for( index = 0; index < end_vectors->size(); ++index )
         {
 
             for( inner_index = 0; inner_index < numCPUBatches; ++inner_index )
