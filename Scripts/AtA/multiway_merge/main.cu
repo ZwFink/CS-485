@@ -123,7 +123,7 @@ int main( int argc, char **argv )
 	numCPUBatches = ( first_sublist_ends.size() - 1 ) * CPUFRAC;
 	numGPUBatches = ( first_sublist_ends.size() - 1 ) - numCPUBatches;
 
-    printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
+    printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u\n", numCPUBatches, numGPUBatches );
     assert( (numCPUBatches + numGPUBatches) == (first_sublist_ends.size() - 1) );
 
     // first_sublist_ends includes index 0 as first element which should be erased
