@@ -23,10 +23,7 @@ void multiwayMerge( uint64_t **inputArr,
     // find where to start placing merged batches
     if( loc > 0 )
     {
-        for( index = 0; index < k; index++ )
-        {
-            start_position = start_position + ( ends[index][loc - 1] - starts[index][0] ) + 1;
-        }
+        start_position = start_position + ( ends[index][loc - 1] - starts[index][0] ) + 1;
     }
  
     for( index = 0; index < k; index++ )
