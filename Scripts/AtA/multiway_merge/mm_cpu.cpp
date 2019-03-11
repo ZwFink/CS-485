@@ -21,12 +21,15 @@ void multiwayMerge( uint64_t **inputArr,
     std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
     
     // find where to start placing merged batches
-    if( loc > 0 )
+    if( loc > 0 ) // otherwise loc = 0 and we merge at beginning
     {
-        start_position = start_position + ( ends[index][loc - 1] - starts[index][0] ) + 1;
+        for( index = 0; index < k; ++index )
+        {
+            start_position = start_position + ( ends[index][loc - 1] - starts[index][0] ) + 1;
+        }
     }
  
-    for( index = 0; index < k; index++ )
+    for( index = 0; index < k; ++index )
     {
         seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + starts[index][loc], 
                                                                     *inputArr + ends[index][loc] ) );
