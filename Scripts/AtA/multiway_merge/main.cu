@@ -159,7 +159,10 @@ int main( int argc, char **argv )
          // }
 
           // MULTIWAY MERGE ALL AT ONCE
-          multiwayMerge( &input, &output_arr, numCPUBatches - 1, sublist_size, K, start_vectors, end_vectors );
+          if( numCPUBatches > 0 )
+              {
+                  multiwayMerge( &input, &output_arr, numCPUBatches - 1, sublist_size, K, start_vectors, end_vectors );
+              }
           tendcpu = omp_get_wtime();
       }
             
