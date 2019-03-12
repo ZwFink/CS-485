@@ -9,41 +9,56 @@
 #include <iterator>
 #include "mm_cpu.h"
 
-
-// this multiway merges particular batches determined by location (loc) parameter
+// this merges all batches of every sublist at once 
+// (requires one call from main where loc = numCPUBatches - 1)
 void multiwayMerge( uint64_t **inputArr, 
                     uint64_t **output_arr, uint64_t loc, 
                     uint64_t sublist_size, uint64_t k, 
                     std::vector< std::vector<uint64_t> > starts, 
                     std::vector< std::vector<uint64_t> > ends )
 {
+    uint64_t index;
+    std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
+    
+    for( index = 0; index < k; ++index )
+    {
+        seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + starts[index][0], 
+                                                                    *inputArr + ends[index][loc] + 1) );
+    }
+
+    __gnu_parallel::multiway_merge( seqs.begin(), 
+                                    seqs.end(), 
+                                    *output_arr, 
+                                    sublist_size * k, 
+                                    std::less<uint64_t>(), 
+                                    __gnu_parallel::parallel_tag() 
+                                  );
+
+    return;
+}
+
+
+// this merges particular batches determined 
+// by the location (loc) of the batch in the sublist
+void multiwayMergeBySplits( uint64_t **inputArr, 
+                            uint64_t **output_arr, uint64_t loc, 
+                            uint64_t sublist_size, uint64_t k, 
+                            std::vector< std::vector<uint64_t> > starts, 
+                            std::vector< std::vector<uint64_t> > ends )
+{
     uint64_t index, start_position = 0;
     std::vector< std::pair<uint64_t *, uint64_t*> > seqs;
     
-    // find position of result array (where to start placing merged batches)
-    // by summing up all start indices of k batches
-    for( index = 0; index < k; index++ )
+    // find where to start placing merged batches
+    if( loc > 0 ) // otherwise loc = 0 and we merge at beginning
     {
-        if( index == 0 )
+        for( index = 0; index < k; ++index )
         {
-            start_position = start_position + starts[index][loc];
+            start_position = start_position + ( ends[index][loc - 1] - starts[index][0] ) + 1;
         }
-	
-        else
-        {	
-            start_position = start_position + ( starts[index][loc] - (sublist_size * index) );
-        }
-		
     }
  
-    // (start_position - k) since every start position is 1 ahead of end position
-    // from previous and there are k start positions. Then add 1 to get position to begin.
-    if( start_position > 0 )
-    {
-        start_position = start_position - k + 1;
-    }
-
-    for( index = 0; index < k; index++ )
+    for( index = 0; index < k; ++index )
     {
         seqs.push_back( std::make_pair< uint64_t *, uint64_t * >( *inputArr + starts[index][loc], 
                                                                     *inputArr + ends[index][loc] ) );

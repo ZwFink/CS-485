@@ -7,5 +7,10 @@ void multiwayMerge( uint64_t **inputArr,
                     uint64_t sublist_size, uint64_t k, 
                     std::vector< std::vector<uint64_t> > starts, 
                     std::vector< std::vector<uint64_t> > ends );
+void multiwayMergeBySplits( uint64_t **inputArr, 
+                            uint64_t **output_arr, uint64_t loc, 
+                            uint64_t sublist_size, uint64_t k, 
+                            std::vector< std::vector<uint64_t> > starts, 
+                            std::vector< std::vector<uint64_t> > ends );
 
 #endif // MM_CPU_HH_INCLUDED

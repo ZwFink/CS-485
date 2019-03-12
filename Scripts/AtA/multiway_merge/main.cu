@@ -110,10 +110,10 @@ int main( int argc, char **argv )
 	//start hybrid CPU + GPU total time timer
 	double tstarthybrid = omp_get_wtime();
 
-    double tstartgpu    = 0;
+    double tstartgpu    = omp_get_wtime();
     double tendgpu      = 0;
 
-    double tstartcpu    = 0;
+    double tstartcpu    = omp_get_wtime();
     double tendcpu      = 0;
    
     // compute the number of batches
@@ -123,7 +123,7 @@ int main( int argc, char **argv )
 	numCPUBatches = ( first_sublist_ends.size() - 1 ) * CPUFRAC;
 	numGPUBatches = ( first_sublist_ends.size() - 1 ) - numCPUBatches;
 
-    printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u", numCPUBatches, numGPUBatches );
+    printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u\n", numCPUBatches, numGPUBatches );
     assert( (numCPUBatches + numGPUBatches) == (first_sublist_ends.size() - 1) );
 
     // first_sublist_ends includes index 0 as first element which should be erased
@@ -149,16 +149,17 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
-          const int NUM_THREADS_CPU = numCPUBatches;
+          // MULTIWAY MERGE BY LOOPING THROUGH SPLITS
+         // #pragma omp parallel for num_threads( NTHREADS ) schedule( static ) private( cpu_index ) \
+         //                        shared( input, output_arr, sublist_size, K, start_vectors, end_vectors )
+         // for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
+         // {
+         //     // merge this round of batches
+         //     multiwayMergeBySplits( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
+         // }
 
-          tstartcpu = omp_get_wtime();
-          #pragma omp parallel for num_threads( NUM_THREADS_CPU ) schedule( static ) private( cpu_index ) \
-                                 shared( input, output_arr, sublist_size, K, start_vectors, end_vectors )
-          for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
-          {
-              // merge this round of batches
-              multiwayMerge( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
-          }
+          // MULTIWAY MERGE ALL AT ONCE
+          multiwayMerge( &input, &output_arr, numCPUBatches - 1, sublist_size, K, start_vectors, end_vectors );
           tendcpu = omp_get_wtime();
       }
             
