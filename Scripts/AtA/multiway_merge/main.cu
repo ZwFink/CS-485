@@ -181,8 +181,6 @@ int main( int argc, char **argv )
           uint64_t *output_second = nullptr;
           uint64_t *result_from_batches_pinned = nullptr;
 
-          tstartgpu = omp_get_wtime();
-
           uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
 
           gpu_start_ptrs.reserve( K );
