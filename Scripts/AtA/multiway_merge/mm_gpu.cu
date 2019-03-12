@@ -130,25 +130,18 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
 
     uint64_t index       = 0;
     uint64_t out_val     = 0;
-
-    uint64_t prev_val    = 0;
-    uint64_t inner_index = 0;
     for( index = 0; index < end_vectors->size(); ++index )
         {
 
-            for( inner_index = 0; inner_index < numCPUBatches; ++inner_index )
+            if( numCPUBatches > 0 )
                 {
-                    prev_val = out_val;
-                    
-                    // get the difference between this val and the previous
-                    // because indices are based from the start of output array
-                    out_val += (*end_vectors)[ index ][ inner_index ] - prev_val;
-
+                    out_val += (*end_vectors)[ index ][ numCPUBatches - 1 ] - (*end_vectors)[ index ][ 0 ];
                 }
+
         }
     // out_val now contains the location of the last CPU item,
     // incrementing it puts us at GPU start
-    return out_val + 1;
+    return numCPUBatches == 0? 0 : out_val + 1;
 
 }
 void copy_from_device_buffer( uint64_t *output_buffer,
