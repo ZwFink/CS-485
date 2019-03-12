@@ -243,7 +243,7 @@ int main( int argc, char **argv )
 
                 // calculate relative end index
                 gpu_end_ptrs[ index ]   = ( index == 0 ) ?              \
-                    start_vectors[ index ][ gpu_index +1 ] - 1 :       \
+                    start_vectors[ index ][ gpu_index + 1 ] - 1 :       \
                     end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
 
 
@@ -264,6 +264,9 @@ int main( int argc, char **argv )
                            stream_dev_ptrs + gpu_end_ptrs[ 1 ],
                            output
                          );
+
+            cudaDeviceSynchronize();
+
             merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
                                 gpu_end_ptrs[ 1 ] - gpu_start_ptrs[ 1 ];
 
@@ -277,6 +280,7 @@ int main( int argc, char **argv )
                                            stream_dev_ptrs + gpu_end_ptrs[ index ],
                                            output_second
                                          );
+                            cudaDeviceSynchronize();
                         }
                     else
                         {
@@ -286,6 +290,8 @@ int main( int argc, char **argv )
                                            stream_dev_ptrs + gpu_end_ptrs[ index ],
                                            output
                                          );
+
+                            cudaDeviceSynchronize();
                         }
 
                     merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
