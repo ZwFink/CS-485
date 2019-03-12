@@ -138,7 +138,6 @@ int main( int argc, char **argv )
     
     start_vectors.push_back( first_sublist_starts );
     end_vectors.push_back( first_sublist_ends );
-
     
 	// find remaining start and end pivot vectors for each sublist
 	find_pivot_vectors( input, &start_vectors, &end_vectors, &first_sublist_ends, &list_begin_ptrs, sublist_size );
@@ -215,13 +214,16 @@ int main( int argc, char **argv )
 
             uint64_t start_index_gpu             = 0;
             uint64_t end_index_gpu               = 0;
-            uint64_t merged_this_round = 0;
+            uint64_t merged_this_round           = 0;
+            uint64_t gpu_output_index_prev       = 0;
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
-                        end_index_gpu, start_vectors, end_vectors ) \
-                        shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
-                                 input_to_gpu_pinned, stream_dev_ptrs, output, input \
-                               )
+                        end_index_gpu ) \
+                shared ( K, start_vectors, end_vectors, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
+                         input_to_gpu_pinned, stream_dev_ptrs, output, input, gpu_output_index_prev \
+                               ) \
+                reduction( +:gpu_output_index )
+
             for( index = 0; index < K; index++ )
             {
 
@@ -241,7 +243,7 @@ int main( int argc, char **argv )
 
                 // calculate relative end index
                 gpu_end_ptrs[ index ]   = ( index == 0 ) ?              \
-                    start_vectors[ index + 1 ][ gpu_index ] - 1 :       \
+                    start_vectors[ index ][ gpu_index +1 ] - 1 :       \
                     end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
 
 
@@ -292,7 +294,8 @@ int main( int argc, char **argv )
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
                         end_index_gpu, start_vectors, end_vectors ) \
                         shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
-                                 input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs \
+                                 input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs, \
+                                 gpu_output_index_prev \
                                )
             for( index = 0; index < K; index++ )
                 {
@@ -300,7 +303,7 @@ int main( int argc, char **argv )
                     stream_id = thread_id % STREAMSPERGPU;
 
                     // copy data in BATCH_SIZE chunks from device to host 
-                    copy_from_device_buffer( output_arr + gpu_output_index,
+                    copy_from_device_buffer( output_arr + gpu_output_index_prev,
                                              result_from_batches_pinned,
                                              output_after_rounds,
                                              streams[ stream_id ],
@@ -309,6 +312,7 @@ int main( int argc, char **argv )
                                              &gpu_end_ptrs
                                            );
                 }
+            gpu_output_index_prev = gpu_output_index;
         }
 
         tendgpu = omp_get_wtime();
