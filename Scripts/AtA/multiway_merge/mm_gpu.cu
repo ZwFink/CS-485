@@ -95,6 +95,8 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
     uint64_t data_copied_total = 0;
     uint64_t write_index       = 0;
 
+    cudaError_t result = cudaSuccess;
+
 
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
@@ -110,11 +112,13 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
                          data_copied * sizeof( uint64_t )
                        );
 
-            cudaMemcpyAsync( device_ptr  + ( stream_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
-                             pinned_host + ( thread_id * data_copied_total ),
-                             data_copied * sizeof( uint64_t ),
-                             cudaMemcpyHostToDevice, stream
-                           );
+            result = cudaMemcpyAsync( device_ptr  + ( stream_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
+                                      pinned_host + ( thread_id * data_copied_total ),
+                                      data_copied * sizeof( uint64_t ),
+                                      cudaMemcpyHostToDevice, stream
+                                     );
+
+            assert( result == cudaSuccess );
 
             data_copied_prev = data_copied;
             left_to_copy -= data_copied;
@@ -141,7 +145,7 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
         }
     // out_val now contains the location of the last CPU item,
     // incrementing it puts us at GPU start
-    return numCPUBatches == 0? 0 : out_val + 1;
+    return numCPUBatches == 0 ? 0 : out_val + 1;
 
 }
 void copy_from_device_buffer( uint64_t *output_buffer,
@@ -163,6 +167,8 @@ void copy_from_device_buffer( uint64_t *output_buffer,
     uint64_t transferred = 0;
     uint64_t offset_index = thread_id;
 
+    cudaError_t result = cudaSuccess;
+
     while( offset_index > 0 )
         {
             offset += (*end_ptrs)[ offset_index ];
@@ -174,8 +180,9 @@ void copy_from_device_buffer( uint64_t *output_buffer,
 
             to_transfer = std::min( BATCH_SIZE, end_index - start_index + 1 );
 
-            cudaMemcpyAsync(  pinned_buff + ( thread_id * BATCH_SIZE ), dev_ptr + to_transfer, to_transfer * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
+            result = cudaMemcpyAsync(  pinned_buff + ( thread_id * BATCH_SIZE ), dev_ptr + to_transfer, to_transfer * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
 
+            assert( result == cudaSuccess );
             cudaStreamSynchronize( stream );
 
             std::memcpy( output_buffer + offset_index + transferred, pinned_buff + ( thread_id * BATCH_SIZE ), to_transfer * sizeof( uint64_t ) );
