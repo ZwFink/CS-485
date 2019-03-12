@@ -34,7 +34,7 @@
 
 int main( int argc, char **argv )
 {
-    uint64_t index, cpu_index, gpu_index;
+    uint64_t index, gpu_index;
     unsigned int numCPUBatches, numGPUBatches;
 	
     omp_set_num_threads(NTHREADS);
