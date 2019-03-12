@@ -179,7 +179,7 @@ void copy_from_device_buffer( uint64_t *output_buffer,
     for( ; start_index < end_index; start_index += BATCH_SIZE )
         {
 
-            to_transfer = std::min( BATCH_SIZE, end_index - start_index );
+            to_transfer = std::min( BATCH_SIZE, end_index - start_index + 1 );
 
             cudaMemcpyAsync(  pinned_buff + ( thread_id * BATCH_SIZE ), dev_ptr + to_transfer, to_transfer * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
 
