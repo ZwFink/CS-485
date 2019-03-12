@@ -46,7 +46,8 @@ void find_pivot_vectors( uint64_t *input,
         temp_start.clear();
         temp_end.clear();		
 		
-        sublist_begin = thrust::distance( input, (*list_begin_ptrs)[ index ] );	
+        // sublist_begin = thrust::distance( input, (*list_begin_ptrs)[ index ] );	
+        sublist_begin = sublist_size * index;        
 
         for( piv_index = 0; piv_index < first_sublist_ends->size() - 1; ++piv_index )
         {
@@ -54,13 +55,13 @@ void find_pivot_vectors( uint64_t *input,
     
             temp_ptr = std::upper_bound( 
                                          input + sublist_begin, 
-                                         input + sublist_begin + sublist_size, 
+                                         input + sublist_begin + sublist_size - 1, 
                                          pivot_val 
                                        );
 
             curr_end_index = thrust::distance( input, temp_ptr );
 
-            temp_end.push_back( curr_end_index - 1 );
+            temp_end.push_back( curr_end_index );
 
             if( piv_index == 0 )
             {
