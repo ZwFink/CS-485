@@ -207,7 +207,7 @@ int main( int argc, char **argv )
 
           uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
-        for( gpu_index = numCPUBatches + 1; gpu_index <= numGPUBatches + numCPUBatches; ++gpu_index )
+        for( gpu_index = numCPUBatches; gpu_index < numGPUBatches + numCPUBatches; ++gpu_index )
         {
 
             int thread_id = omp_get_thread_num();
