@@ -324,7 +324,7 @@ int main( int argc, char **argv )
 
     // formula given in paper
     double load_imbalance    = ( cpu_total_time - gpu_total_time ) / hybrid_total_time;
-       
+
     printf( "Time CPU and GPU (total time): %f\n", hybrid_total_time );
     printf( "Time CPU Only: %f\n", cpu_total_time );
     printf( "Time GPU Only: %f\n", gpu_total_time );
