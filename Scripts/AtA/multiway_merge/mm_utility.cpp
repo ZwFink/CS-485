@@ -130,7 +130,7 @@ std::vector<uint64_t*> *generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t
     for( batch_index = 0; batch_index < k; ++batch_index )
         {
             __gnu_parallel::sort( base_ptr + ( batch_index * elements_per_list ),
-                                  base_ptr + ( batch_index * elements_per_list ) + elements_per_list - 1
+                                  base_ptr + ( batch_index * elements_per_list ) + elements_per_list
                                 );
             list_ptrs->push_back( base_ptr + ( batch_index * elements_per_list ) );
         }
