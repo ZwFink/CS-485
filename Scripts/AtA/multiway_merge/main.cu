@@ -238,14 +238,14 @@ int main( int argc, char **argv )
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
                 // calculate relative start
-                gpu_start_ptrs[ index ] = ( index == 0 ) ?  \
-                    0 : start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
+                gpu_start_ptrs[ index ] = ( gpu_index == 0 ) ?  \
+                    start_vectors[ index ][ gpu_index ] : \
+                    start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
 
                 // calculate relative end index
-                gpu_end_ptrs[ index ]   = ( index == 0 ) ?              \
-                    start_vectors[ index ][ gpu_index + 1 ] - 1 :       \
+                gpu_end_ptrs[ index ]   = ( gpu_index == 0 ) ?              \
+                    end_vectors[ index ][ gpu_index ]:       \
                     end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
-
 
                 copy_to_device_buffer( input,
                                        input_to_gpu_pinned, stream_dev_ptrs,
@@ -272,7 +272,7 @@ int main( int argc, char **argv )
 
             for( index = 2; index < K; ++index )
                 {
-                    if( index % 2 )
+                    if( !( index % 2 ) )
                         {
                             thrust::merge( thrust::device,
                                            output, output  + merged_this_round,
@@ -301,7 +301,7 @@ int main( int argc, char **argv )
                         end_index_gpu, start_vectors, end_vectors ) \
                         shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
                                  input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs, \
-                                 gpu_output_index_prev \
+                                 gpu_output_index_prev, output_after_rounds                 \
                                )
             for( index = 0; index < K; index++ )
                 {
