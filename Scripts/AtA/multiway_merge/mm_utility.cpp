@@ -88,7 +88,7 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
     uint64_t index = 0;
 
     uint64_t numBatches = ceil( N * 1.0 / inputBatchSize * 1.0 );
-	//given the input batch size and N, recompute the batch size (apporximate)
+	//given the input batch size and N, recompute the batch size (approximate)
 	uint64_t batchSizeApprox = N / numBatches;
 
 	printf( "\nNum batches: %lu, Approx. batch size: %lu", numBatches, batchSizeApprox );
