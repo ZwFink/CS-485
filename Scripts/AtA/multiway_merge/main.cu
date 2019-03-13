@@ -174,7 +174,7 @@ int main( int argc, char **argv )
           std::vector<uint64_t> gpu_start_ptrs;
           std::vector<uint64_t> gpu_end_ptrs;
           uint64_t result_size = BATCH_SIZE * K * 2;
-          uint64_t stream_size = BATCH_SIZE * K;
+          uint64_t stream_size = BATCH_SIZE * K * 2;
           uint64_t *output = nullptr;
           uint64_t *stream_dev_ptrs         = nullptr;
           uint64_t *input_to_gpu_pinned = nullptr;
@@ -193,7 +193,7 @@ int main( int argc, char **argv )
           assert( result == cudaSuccess );
           output_second = output + result_size;
 
-          result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * stream_size );
+          result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * sublist_size );
           assert( result == cudaSuccess );
 
           result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
@@ -214,9 +214,11 @@ int main( int argc, char **argv )
             uint64_t end_index_gpu               = 0;
             uint64_t merged_this_round           = 0;
             uint64_t gpu_output_index_prev       = 0;
+            uint64_t gpu_output_start            = 0;
+            uint64_t gpu_output_end              = 0;
 
             #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
-                        end_index_gpu ) \
+                                                                                              end_index_gpu ) \
                 shared ( K, start_vectors, end_vectors, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
                          input_to_gpu_pinned, stream_dev_ptrs, output, input, gpu_output_index_prev \
                                ) \
@@ -225,25 +227,20 @@ int main( int argc, char **argv )
             for( index = 0; index < K; index++ )
             {
 
+                uint64_t relative_index = index * sublist_size;
+
                 thread_id = omp_get_thread_num();
                 stream_id = gpu_index % STREAMSPERGPU;
 
-                start_index_gpu = 0;
-                end_index_gpu   = 0;
 
                 // copy data in BATCH_SIZE chunks from host memory to pinned memory
                 start_index_gpu = start_vectors[ index ][ gpu_index ];
                 end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
                 // calculate relative start
-                gpu_start_ptrs[ index ] = ( gpu_index == 0 ) ?  \
-                    start_vectors[ index ][ gpu_index ] : \
-                    start_vectors[ index ][ gpu_index ] - start_vectors[ index ][ gpu_index - 1 ];
-
+                gpu_start_ptrs[ index ] = start_vectors[ index ][ gpu_index ] - relative_index;
                 // calculate relative end index
-                gpu_end_ptrs[ index ]   = ( gpu_index == 0 ) ?              \
-                    end_vectors[ index ][ gpu_index ]:       \
-                    end_vectors[ index ][ gpu_index ] - end_vectors[ index ][ gpu_index - 1 ];
+                gpu_end_ptrs[ index ]   = end_vectors[ index ][ gpu_index ]   - relative_index;
 
                 copy_to_device_buffer( input,
                                        input_to_gpu_pinned, stream_dev_ptrs,
@@ -262,7 +259,6 @@ int main( int argc, char **argv )
                            stream_dev_ptrs + gpu_end_ptrs[ 1 ],
                            output
                          );
-
             cudaDeviceSynchronize();
 
             merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
