@@ -139,5 +139,20 @@ std::vector<uint64_t*> *generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t
     return list_ptrs;
 }
 
+int is_sorted( uint64_t *start, uint64_t num_items )
+{
+    uint64_t index = 0;
+    int sorted     = 1;
+
+    for( index = 0; index < num_items - 1; ++index )
+        {
+            if( start[ index ] > start[ index + 1 ] )
+                {
+                    sorted = 0;
+                }
+        }
+    return sorted;
+}
+
 
 
