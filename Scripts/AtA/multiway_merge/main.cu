@@ -148,15 +148,6 @@ int main( int argc, char **argv )
       // BEGIN CPU SECTION        
       #pragma omp section
       {
-          // MULTIWAY MERGE BY LOOPING THROUGH SPLITS
-         // #pragma omp parallel for num_threads( NTHREADS ) schedule( static ) private( cpu_index ) \
-         //                        shared( input, output_arr, sublist_size, K, start_vectors, end_vectors )
-         // for( cpu_index = 0; cpu_index < numCPUBatches; ++cpu_index )
-         // {
-         //     // merge this round of batches
-         //     multiwayMergeBySplits( &input, &output_arr, cpu_index, sublist_size, K, start_vectors, end_vectors );
-         // }
-
           // MULTIWAY MERGE ALL AT ONCE
           if( numCPUBatches > 0 )
               {
