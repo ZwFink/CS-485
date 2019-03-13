@@ -90,7 +90,7 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
     uint64_t copy_index        = 0;
     uint64_t end_index_actual  = 0;
     uint64_t data_copied       = 0;
-    uint64_t left_to_copy      = BATCH_SIZE;
+    int64_t left_to_copy      = start_index - end_index;
     uint64_t data_copied_prev  = 0;
     uint64_t data_copied_total = 0;
     uint64_t write_index       = 0;
@@ -101,29 +101,30 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
             // want to make sure that we don't copy extra data
-            end_index_actual = std::min( left_to_copy,
+            end_index_actual = std::min( (uint64_t) left_to_copy,
                                          BATCH_SIZE 
                                        ) + start_index;
             data_copied        = end_index_actual - start_index;
-            data_copied_total += data_copied;
 
-            std::memcpy( pinned_host + ( thread_id * data_copied_total ),
-                         input + copy_index,
+            std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ),
+                         input + end_index_actual + data_copied_total,
                          data_copied * sizeof( uint64_t )
                        );
 
-            result = cudaMemcpyAsync( device_ptr  + ( stream_id * BATCH_SIZE ) + ( write_index * data_copied_prev ),
-                                      pinned_host + ( thread_id * data_copied_total ),
+            result = cudaMemcpyAsync( device_ptr + data_copied_total,
+                                      pinned_host + ( stream_id * BATCH_SIZE ) + data_copied_total,
                                       data_copied * sizeof( uint64_t ),
                                       cudaMemcpyHostToDevice, stream
                                      );
 
-            assert( result == cudaSuccess );
-
-            data_copied_prev = data_copied;
-            left_to_copy -= data_copied;
+            
+            data_copied_prev   = data_copied;
+            data_copied_total += data_copied;
+            left_to_copy      -= data_copied;
 
             cudaStreamSynchronize( stream );
+            assert( result == cudaSuccess );
+
         }
 }
 
