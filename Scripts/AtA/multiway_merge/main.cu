@@ -209,87 +209,148 @@ int main( int argc, char **argv )
                           uint64_t gpu_output_index_prev       = 0;
                           uint64_t gpu_output_start            = 0;
                           uint64_t gpu_output_end              = 0;
+                          uint64_t copied_this_round           = 0;
+                          uint64_t start_index_prev            = 0;
+                          uint64_t end_index_prev              = 0;
 
+                          uint64_t rel_index = 0;
+
+                          // copy each batch to a pinned buffer
                           for( index = 0; index < K; index++ )
                               {
-
-                                  uint64_t relative_index = index * sublist_size;
-
-                                  thread_id = omp_get_thread_num();
-                                  stream_id = gpu_index % STREAMSPERGPU;
-
-
                                   // copy data in BATCH_SIZE chunks from host memory to pinned memory
                                   start_index_gpu = start_vectors[ index ][ gpu_index ];
                                   end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                                  // calculate relative start
-                                  gpu_start_ptrs[ index ] = start_index_gpu;// - relative_index;
-                                  // calculate relative end index
-                                  gpu_end_ptrs[ index ]   = end_index_gpu;//   - relative_index;
-
-                                  copy_to_device_buffer( input,
-                                                         input_to_gpu_pinned, stream_dev_ptrs,
-                                                         streams[ stream_id ],
-                                                         start_index_gpu, end_index_gpu,
-                                                         BATCH_SIZE, thread_id, stream_id
-                                                         );
-                                  gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
-                      }
-                          // do pairwise merging of sublists
-                          // merge the first two sublists, after the first merge we alternate
-                          // between output buffers
-                          thrust::merge( thrust::device, stream_dev_ptrs + gpu_start_ptrs[ 0 ],
-                              stream_dev_ptrs + gpu_end_ptrs[ 0 ],
-                              stream_dev_ptrs + gpu_start_ptrs[ 1 ],
-                              stream_dev_ptrs + gpu_end_ptrs[ 1 ],
-                              output
-                              );
-                          cudaDeviceSynchronize();
-
-                          merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
-                              gpu_end_ptrs[ 1 ] - gpu_start_ptrs[ 1 ];
-
-                          for( index = 2; index < K; ++index )
-                              {
-                                  if( !( index % 2 ) )
+                                  if( gpu_index == 0 )
                                       {
-                                          thrust::merge( thrust::device,
-                                                         output, output  + merged_this_round,
-                                                         stream_dev_ptrs + gpu_start_ptrs[ index ],
-                                                         stream_dev_ptrs + gpu_end_ptrs[ index ],
-                                                         output_second
-                                                         );
-                                          cudaDeviceSynchronize();
+                                          if( index == 0 )
+                                              {
+                                                  gpu_start_ptrs[ index ] =  0;
+                                                  gpu_end_ptrs[ index ]   = end_vectors[ index ][ gpu_index ];
+
+                                                  rel_index = gpu_end_ptrs[ index ] + 1;
+
+                                              }
+                                          else
+                                              {
+                                                  gpu_start_ptrs[ index ] = gpu_end_ptrs[ index - 1 ] + 1;
+                                                  gpu_end_ptrs[ index ]   = (end_vectors[ index ][ gpu_index] + rel_index ) - ( sublist_size * index );
+                                                  rel_index = gpu_end_ptrs[ index ] + 1;
+                                              }
                                       }
                                   else
                                       {
-                                          thrust::merge( thrust::device,
-                                                         output_second, output_second + merged_this_round,
-                                                         stream_dev_ptrs + gpu_start_ptrs[ index ],
-                                                         stream_dev_ptrs + gpu_end_ptrs[ index ],
-                                                         output
-                                                         );
+                                          if( index == 0 )
+                                              {
+                                                  gpu_start_ptrs[ index ] = 0;
+                                              }
+                                          else
+                                              {
+                                                  gpu_start_ptrs[ index ] = gpu_end_ptrs[ index - 1 ] + 1;
+                                                  gpu_end_ptrs[ index ]   = end_vectors[ index ][ gpu_index ] - end_index_prev;
 
-                                          cudaDeviceSynchronize();
+
+                                              }
                                       }
 
-                          merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
-                      }
+                                  start_index_prev = gpu_start_ptrs[ index ];
+                                  end_index_prev = gpu_end_ptrs[ index ];
 
-                          for( index = 0; index < K; index++ )
-                              {
-                                  // copy data in BATCH_SIZE chunks from device to host 
-                                  copy_from_device_buffer( output_arr + gpu_output_index_prev,
-                                                           result_from_batches_pinned,
-                                                           output_after_rounds,
-                                                           streams[ stream_id ],
-                                                           BATCH_SIZE, thread_id, stream_id,
-                                                           &gpu_start_ptrs,
-                                                           &gpu_end_ptrs
-                                                           );
+                                  printf( "Start: %lu\n", gpu_start_ptrs[ index ] );
+                                  printf( "End: %lu\n", gpu_end_ptrs[ index ] );
+                                  copied_this_round += copy_to_pinned_buffer( input,
+                                                                              input_to_gpu_pinned,
+                                                                              start_index_gpu,
+                                                                              end_index_gpu,
+                                                                              thread_id,
+                                                                              BATCH_SIZE
+                                                                            );
+
+                                  if( copied_this_round >= BATCH_SIZE - ( BATCH_SIZE / 4 ) )
+                                      {
+                                          // copy to the device, we don't want to overrun our space in the buffer
+                                          copied_this_round = 0;
+                                      }
                               }
-                          gpu_output_index_prev = gpu_output_index;
+                          break;
+                      //     copy_to_device_buffer( input_to_gpu_pinned, stream_dev_ptrs + index_offset,
+                      //                            streams[ thread_id ], copied_this_round, BATCH_SIZE
+                      //                          );
+
+                      //             uint64_t relative_index = index * sublist_size;
+
+                      //             thread_id = omp_get_thread_num();
+                      //             stream_id = gpu_index % STREAMSPERGPU;
+
+
+                      //             // calculate relative start
+                      //             gpu_start_ptrs[ index ] = start_index_gpu;// - relative_index;
+                      //             // calculate relative end index
+                      //             gpu_end_ptrs[ index ]   = end_index_gpu;//   - relative_index;
+
+                      //             copied_this_round = copy_to_pinned_buffer
+                      //             // copy_to_device_buffer( input,
+                      //             //                        input_to_gpu_pinned, stream_dev_ptrs,
+                      //             //                        streams[ stream_id ],
+                      //             //                        start_index_gpu, end_index_gpu,
+                      //             //                        BATCH_SIZE, thread_id, stream_id
+                      //             //                        );
+                      //             gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
+                      //     // do pairwise merging of sublists
+                      //     // merge the first two sublists, after the first merge we alternate
+                      //     // between output buffers
+                      //     thrust::merge( thrust::device, stream_dev_ptrs + gpu_start_ptrs[ 0 ],
+                      //         stream_dev_ptrs + gpu_end_ptrs[ 0 ],
+                      //         stream_dev_ptrs + gpu_start_ptrs[ 1 ],
+                      //         stream_dev_ptrs + gpu_end_ptrs[ 1 ],
+                      //         output
+                      //         );
+                      //     cudaDeviceSynchronize();
+
+                      //     merged_this_round = gpu_end_ptrs[ 0 ] - gpu_start_ptrs[ 0 ] + \
+                      //         gpu_end_ptrs[ 1 ] - gpu_start_ptrs[ 1 ];
+
+                      //     for( index = 2; index < K; ++index )
+                      //         {
+                      //             if( !( index % 2 ) )
+                      //                 {
+                      //                     thrust::merge( thrust::device,
+                      //                                    output, output  + merged_this_round,
+                      //                                    stream_dev_ptrs + gpu_start_ptrs[ index ],
+                      //                                    stream_dev_ptrs + gpu_end_ptrs[ index ],
+                      //                                    output_second
+                      //                                    );
+                      //                     cudaDeviceSynchronize();
+                      //                 }
+                      //             else
+                      //                 {
+                      //                     thrust::merge( thrust::device,
+                      //                                    output_second, output_second + merged_this_round,
+                      //                                    stream_dev_ptrs + gpu_start_ptrs[ index ],
+                      //                                    stream_dev_ptrs + gpu_end_ptrs[ index ],
+                      //                                    output
+                      //                                    );
+
+                      //                     cudaDeviceSynchronize();
+                      //                 }
+
+                      //     merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
+                      // }
+
+                      //     for( index = 0; index < K; index++ )
+                      //         {
+                      //             // copy data in BATCH_SIZE chunks from device to host 
+                      //             copy_from_device_buffer( output_arr + gpu_output_index_prev,
+                      //                                      result_from_batches_pinned,
+                      //                                      output_after_rounds,
+                      //                                      streams[ stream_id ],
+                      //                                      BATCH_SIZE, thread_id, stream_id,
+                      //                                      &gpu_start_ptrs,
+                      //                                      &gpu_end_ptrs
+                      //                                      );
+                      //         }
+                      //     gpu_output_index_prev = gpu_output_index;
                       }
 
                   tendgpu = omp_get_wtime();
