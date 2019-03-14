@@ -80,46 +80,65 @@ cudaError_t create_streams( cudaStream_t *streams, const int num_streams )
 }
 
 
-void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
-                            uint64_t *device_ptr, cudaStream_t stream,
-                            uint64_t start_index,
-                            uint64_t end_index, uint64_t BATCH_SIZE,
-                            int thread_id, int stream_id
+
+void copy_to_device_buffer( uint64_t *pinned, uint64_t *dev_ptr,
+                            cudaStream_t stream, uint64_t to_transfer, int stream_id,
+                            uint64_t batch_size
                           )
+{
+    uint64_t to_copy         = to_transfer;
+    uint64_t copy_this_round = 0;
+    uint64_t copied_total    = 0;
+    cudaError_t result = cudaSuccess;
+
+    while( to_copy > 0 )
+        {
+            
+            copy_this_round = std::min(  to_copy,
+                                         batch_size
+                              );
+
+            result = cudaMemcpyAsync( dev_ptr,
+                                      pinned + ( stream_id * batch_size ) + copied_total,
+                                      copy_this_round * sizeof( uint64_t ),
+                                      cudaMemcpyHostToDevice, stream
+                                      );
+
+            cudaStreamSynchronize( stream );
+            assert( result == cudaSuccess );
+
+            to_copy      -= copy_this_round;
+            copied_total += copy_this_round;
+        }
+    
+
+}
+uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
+                                uint64_t start_index, uint64_t end_index,
+                                uint64_t stream_id, uint64_t BATCH_SIZE
+                              )
 {
     uint64_t copy_index        = 0;
     uint64_t data_copied       = 0;
-    int64_t left_to_copy      = end_index - start_index;
+    int64_t left_to_copy       = end_index - start_index;
     uint64_t data_copied_total = 0;
-
-    cudaError_t result = cudaSuccess;
 
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
             // want to make sure that we don't copy extra data
-
             data_copied = std::min( (uint64_t) left_to_copy,
                                          BATCH_SIZE 
                                        );
-
             std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ),
                          input + copy_index,
                          data_copied * sizeof( uint64_t )
                        );
 
-            result = cudaMemcpyAsync( device_ptr + data_copied_total,
-                                      pinned_host + ( stream_id * BATCH_SIZE ) + data_copied_total,
-                                      data_copied * sizeof( uint64_t ),
-                                      cudaMemcpyHostToDevice, stream
-                                     );
-
             data_copied_total += data_copied;
             left_to_copy      -= data_copied;
-
-            cudaStreamSynchronize( stream );
-            assert( result == cudaSuccess );
-
         }
+
+    return data_copied_total;
 }
 
 uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vectors,
