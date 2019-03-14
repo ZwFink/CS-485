@@ -210,13 +210,6 @@ int main( int argc, char **argv )
                           uint64_t gpu_output_start            = 0;
                           uint64_t gpu_output_end              = 0;
 
-                         #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
-                                                                                                           end_index_gpu ) \
-                             shared ( K, start_vectors, end_vectors, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
-                                      input_to_gpu_pinned, stream_dev_ptrs, output, input, gpu_output_index_prev \
-                                      )                                                          \
-                             reduction( +:gpu_output_index )
-
                           for( index = 0; index < K; index++ )
                               {
 
@@ -284,31 +277,22 @@ int main( int argc, char **argv )
                           merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
                       }
 
-                         #pragma omp parallel for num_threads( STREAMSPERGPU ) schedule( static ) private( index, thread_id, stream_id, start_index_gpu, \
-                             end_index_gpu, start_vectors, end_vectors )                         \
-                             shared ( K, gpu_index, numGPUBatches, numCPUBatches, result_from_batches_pinned, \
-                             input_to_gpu_pinned, stream_dev_ptrs, output_arr, input, gpu_output_index, gpu_end_ptrs, gpu_start_ptrs, \
-                             gpu_output_index_prev, output_after_rounds                          \
-                             )
                           for( index = 0; index < K; index++ )
                               {
-                          thread_id = omp_get_thread_num();
-                          stream_id = thread_id % STREAMSPERGPU;
-
-                          // copy data in BATCH_SIZE chunks from device to host 
-                          copy_from_device_buffer( output_arr + gpu_output_index_prev,
-                              result_from_batches_pinned,
-                              output_after_rounds,
-                              streams[ stream_id ],
-                              BATCH_SIZE, thread_id, stream_id,
-                              &gpu_start_ptrs,
-                              &gpu_end_ptrs
-                              );
-                      }
+                                  // copy data in BATCH_SIZE chunks from device to host 
+                                  copy_from_device_buffer( output_arr + gpu_output_index_prev,
+                                                           result_from_batches_pinned,
+                                                           output_after_rounds,
+                                                           streams[ stream_id ],
+                                                           BATCH_SIZE, thread_id, stream_id,
+                                                           &gpu_start_ptrs,
+                                                           &gpu_end_ptrs
+                                                           );
+                              }
                           gpu_output_index_prev = gpu_output_index;
                       }
 
-        tendgpu = omp_get_wtime();
+                  tendgpu = omp_get_wtime();
               }
       }
     }
