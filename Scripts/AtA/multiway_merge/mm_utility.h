@@ -9,5 +9,6 @@ void find_pivot_vectors( uint64_t *input,
 						 uint64_t sublist_size );
 std::vector<uint64_t*> *generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k );
 void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_offsets, uint64_t inputBatchSize, uint64_t sublist_size );
+int is_sorted( uint64_t *start, uint64_t num_items );
 
 #endif // MULTIWAY_UTILITY_H_INCLUDED 
