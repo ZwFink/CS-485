@@ -88,26 +88,22 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
                           )
 {
     uint64_t copy_index        = 0;
-    uint64_t end_index_actual  = 0;
     uint64_t data_copied       = 0;
-    int64_t left_to_copy      = start_index - end_index;
-    uint64_t data_copied_prev  = 0;
+    int64_t left_to_copy      = end_index - start_index;
     uint64_t data_copied_total = 0;
-    uint64_t write_index       = 0;
 
     cudaError_t result = cudaSuccess;
-
 
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
         {
             // want to make sure that we don't copy extra data
-            end_index_actual = std::min( (uint64_t) left_to_copy,
+
+            data_copied = std::min( (uint64_t) left_to_copy,
                                          BATCH_SIZE 
-                                       ) + start_index;
-            data_copied        = end_index_actual - start_index;
+                                       );
 
             std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ),
-                         input + end_index_actual + data_copied_total,
+                         input + copy_index,
                          data_copied * sizeof( uint64_t )
                        );
 
@@ -117,8 +113,6 @@ void copy_to_device_buffer( uint64_t *input, uint64_t *pinned_host,
                                       cudaMemcpyHostToDevice, stream
                                      );
 
-            
-            data_copied_prev   = data_copied;
             data_copied_total += data_copied;
             left_to_copy      -= data_copied;
 
@@ -145,7 +139,6 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
 
         }
     // out_val now contains the location of the last CPU item,
-    // incrementing it puts us at GPU start
     return numCPUBatches == 0 ? 0 : out_val + 1;
 
 }
