@@ -186,7 +186,7 @@ int main( int argc, char **argv )
                   assert( result == cudaSuccess );
                   output_second = output + result_size;
 
-                  result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * sublist_size );
+                  result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * N );
                   assert( result == cudaSuccess );
 
                   result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
@@ -220,28 +220,28 @@ int main( int argc, char **argv )
                           for( index = 0; index < K; index++ )
                               {
 
-                          uint64_t relative_index = index * sublist_size;
+                                  uint64_t relative_index = index * sublist_size;
 
-                          thread_id = omp_get_thread_num();
-                          stream_id = gpu_index % STREAMSPERGPU;
+                                  thread_id = omp_get_thread_num();
+                                  stream_id = gpu_index % STREAMSPERGPU;
 
 
-                          // copy data in BATCH_SIZE chunks from host memory to pinned memory
-                          start_index_gpu = start_vectors[ index ][ gpu_index ];
-                          end_index_gpu   = end_vectors[ index ][ gpu_index ];
+                                  // copy data in BATCH_SIZE chunks from host memory to pinned memory
+                                  start_index_gpu = start_vectors[ index ][ gpu_index ];
+                                  end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                          // calculate relative start
-                          gpu_start_ptrs[ index ] = start_vectors[ index ][ gpu_index ] - relative_index;
-                          // calculate relative end index
-                          gpu_end_ptrs[ index ]   = end_vectors[ index ][ gpu_index ]   - relative_index;
+                                  // calculate relative start
+                                  gpu_start_ptrs[ index ] = start_index_gpu;// - relative_index;
+                                  // calculate relative end index
+                                  gpu_end_ptrs[ index ]   = end_index_gpu;//   - relative_index;
 
-                          copy_to_device_buffer( input,
-                              input_to_gpu_pinned, stream_dev_ptrs,
-                              streams[ stream_id ],
-                              start_index_gpu, end_index_gpu,
-                              BATCH_SIZE, thread_id, stream_id
-                              );
-                          gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
+                                  copy_to_device_buffer( input,
+                                                         input_to_gpu_pinned, stream_dev_ptrs,
+                                                         streams[ stream_id ],
+                                                         start_index_gpu, end_index_gpu,
+                                                         BATCH_SIZE, thread_id, stream_id
+                                                         );
+                                  gpu_output_index += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
                       }
                           // do pairwise merging of sublists
                           // merge the first two sublists, after the first merge we alternate
@@ -259,27 +259,27 @@ int main( int argc, char **argv )
 
                           for( index = 2; index < K; ++index )
                               {
-                          if( !( index % 2 ) )
-                              {
-                          thrust::merge( thrust::device,
-                              output, output  + merged_this_round,
-                              stream_dev_ptrs + gpu_start_ptrs[ index ],
-                              stream_dev_ptrs + gpu_end_ptrs[ index ],
-                              output_second
-                              );
-                          cudaDeviceSynchronize();
-                      }
-                          else
-                              {
-                          thrust::merge( thrust::device,
-                              output_second, output_second + merged_this_round,
-                              stream_dev_ptrs + gpu_start_ptrs[ index ],
-                              stream_dev_ptrs + gpu_end_ptrs[ index ],
-                              output
-                              );
+                                  if( !( index % 2 ) )
+                                      {
+                                          thrust::merge( thrust::device,
+                                                         output, output  + merged_this_round,
+                                                         stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                                         stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                                         output_second
+                                                         );
+                                          cudaDeviceSynchronize();
+                                      }
+                                  else
+                                      {
+                                          thrust::merge( thrust::device,
+                                                         output_second, output_second + merged_this_round,
+                                                         stream_dev_ptrs + gpu_start_ptrs[ index ],
+                                                         stream_dev_ptrs + gpu_end_ptrs[ index ],
+                                                         output
+                                                         );
 
-                          cudaDeviceSynchronize();
-                      }
+                                          cudaDeviceSynchronize();
+                                      }
 
                           merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ];
                       }
