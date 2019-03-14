@@ -248,9 +248,8 @@ int main( int argc, char **argv )
                                           else
                                               {
                                                   gpu_start_ptrs[ index ] = gpu_end_ptrs[ index - 1 ] + 1;
-                                                  gpu_end_ptrs[ index ]   = end_vectors[ index ][ gpu_index ] - end_index_prev;
-
-
+                                                  gpu_end_ptrs[ index ]   = ( end_vectors[ index ][ gpu_index ] -  end_vectors[ index ][ gpu_index - 1 ] ) + rel_index;
+                                                  rel_index = gpu_end_ptrs[ index ] + 1;
                                               }
                                       }
 
@@ -273,7 +272,8 @@ int main( int argc, char **argv )
                                           copied_this_round = 0;
                                       }
                               }
-                          break;
+                          if( !( (gpu_index + 1) % 10) )
+                              break;
                       //     copy_to_device_buffer( input_to_gpu_pinned, stream_dev_ptrs + index_offset,
                       //                            streams[ thread_id ], copied_this_round, BATCH_SIZE
                       //                          );
