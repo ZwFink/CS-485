@@ -27,19 +27,22 @@ all: $(EXECUTABLE)
 .cpp.o:
 	$(CC) $(CFLAGS) $(FLAGS) $(NTHREADS) $(PARAMS) $<
 
-
+test: test.o
 
 main.o: main.cu
 	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) main.cu 
 mm_gpu.o: mm_gpu.cu mm_gpu.h
 	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) mm_gpu.cu
 
+test.o: test.cu
+	$(CC) $(FLAGS) $(CFLAGS) $(NTHREADS) $(PARAMS) test.cu 
+
 $(EXECUTABLE): $(OBJECTS) $(CUDAOBJECTS)
 	$(CC) $(FLAGS) $^ -o $@
 
 
 
-.PHONY: debug clean
+.PHONY: debug clean test
 debug: clean
 debug: FLAGS =-std=c++11 -O0 -g -G -Xcompiler -fopenmp -arch=compute_60 -code=sm_60 -lcuda -lineinfo -Xcompiler -fpermissive
 debug: main
