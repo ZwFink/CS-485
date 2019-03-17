@@ -164,8 +164,6 @@ int main( int argc, char **argv )
                   cudaStream_t streams[ STREAMSPERGPU ];
                   const int NUM_THREADS_SEARCH = 4;
                   cudaError_t result = cudaSuccess;
-                  std::vector<uint64_t> gpu_start_ptrs;
-                  std::vector<uint64_t> gpu_end_ptrs;
                   uint64_t result_size = BATCH_SIZE * K * 2;
                   uint64_t stream_size = BATCH_SIZE * K * 2;
                   uint64_t *output = nullptr;
@@ -176,8 +174,6 @@ int main( int argc, char **argv )
 
                   uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
 
-                  gpu_start_ptrs.reserve( K );
-                  gpu_end_ptrs.reserve( K );
 
                   result = create_streams( streams, STREAMSPERGPU );
                   assert( result == cudaSuccess );
@@ -189,20 +185,31 @@ int main( int argc, char **argv )
                   result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * result_size );
                   assert( result == cudaSuccess );
 
-                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
+                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * BATCH_SIZE * ( 2 + STREAMSPERGPU ) );
                   assert( result == cudaSuccess );
+                  printf( "Total size: %lu\n", BATCH_SIZE * ( STREAMSPERGPU + 1 ) );
 
                   result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU );
                   assert( result == cudaSuccess );
 
                   uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
+                  #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( input_to_gpu_pinned, result_from_batches_pinned, gpu_output_index, \
+                                                                                stream_dev_ptrs, result_size, stream_size, streams, output, \
+                                                                                output_second, K ) \
+                      private( result, gpu_index, index )
                   for( gpu_index = numCPUBatches; gpu_index < numGPUBatches + numCPUBatches; ++gpu_index )
                       {
 
                           int thread_id = omp_get_thread_num();
                           int stream_id = thread_id % STREAMSPERGPU;
 
+
+                  std::vector<uint64_t> gpu_start_ptrs;
+                  std::vector<uint64_t> gpu_end_ptrs;
+
+                  gpu_start_ptrs.reserve( K );
+                  gpu_end_ptrs.reserve( K );
                           uint64_t start_index_gpu             = 0;
                           uint64_t end_index_gpu               = 0;
                           uint64_t merged_this_round           = 0;
@@ -210,10 +217,12 @@ int main( int argc, char **argv )
                           uint64_t gpu_output_start            = 0;
                           uint64_t gpu_output_end              = 0;
                           uint64_t copied_this_round           = 0;
-                          uint64_t start_index_prev            = 0;
-                          uint64_t end_index_prev              = 0;
+                          uint64_t copied_so_far               = 0;
 
                           uint64_t rel_index = 0;
+
+                          uint64_t start_index_prev = 0;
+                          uint64_t end_index_prev   = 0;
 
                           // copy each batch to a pinned buffer
                           for( index = 0; index < K; index++ )
@@ -257,16 +266,28 @@ int main( int argc, char **argv )
                                                                               input_to_gpu_pinned,
                                                                               start_index_gpu,
                                                                               end_index_gpu,
-                                                                              thread_id,
+                                                                              stream_id,
                                                                               BATCH_SIZE
                                                                             );
 
                                   if( copied_this_round >= BATCH_SIZE - ( BATCH_SIZE / 4 ) )
                                       {
+                                          copy_to_device_buffer( input_to_gpu_pinned + ( BATCH_SIZE * stream_id ) + copied_so_far,
+                                                                 stream_dev_ptrs     + ( BATCH_SIZE * stream_id ),
+                                                                 streams[ index ], copied_this_round,
+                                                                 stream_id, BATCH_SIZE
+                                                               );
                                           // copy to the device, we don't want to overrun our space in the buffer
+                                          copied_so_far     = copied_this_round;
                                           copied_this_round = 0;
                                       }
                               }
+                          copy_to_device_buffer( input_to_gpu_pinned + ( BATCH_SIZE * stream_id ) + copied_so_far,
+                                                 stream_dev_ptrs     + ( BATCH_SIZE * stream_id ) + copied_so_far,
+                                                 streams[ index ], copied_this_round,
+                                                 stream_id, BATCH_SIZE
+                                               );
+
                       //     copy_to_device_buffer( input_to_gpu_pinned, stream_dev_ptrs + index_offset,
                       //                            streams[ thread_id ], copied_this_round, BATCH_SIZE
                       //                          );
