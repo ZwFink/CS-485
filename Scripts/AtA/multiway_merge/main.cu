@@ -205,11 +205,11 @@ int main( int argc, char **argv )
                           int stream_id = thread_id % STREAMSPERGPU;
 
 
-                  std::vector<uint64_t> gpu_start_ptrs;
-                  std::vector<uint64_t> gpu_end_ptrs;
+                          std::vector<uint64_t> gpu_start_ptrs;
+                          std::vector<uint64_t> gpu_end_ptrs;
 
-                  gpu_start_ptrs.reserve( K );
-                  gpu_end_ptrs.reserve( K );
+                          gpu_start_ptrs.reserve( K );
+                          gpu_end_ptrs.reserve( K );
                           uint64_t start_index_gpu             = 0;
                           uint64_t end_index_gpu               = 0;
                           uint64_t merged_this_round           = 0;
