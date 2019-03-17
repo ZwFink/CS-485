@@ -251,10 +251,8 @@ int main( int argc, char **argv )
                                       }
 
                                   start_index_prev = gpu_start_ptrs[ index ];
-                                  end_index_prev = gpu_end_ptrs[ index ];
+                                  end_index_prev   = gpu_end_ptrs[ index ];
 
-                                  printf( "Start: %lu\n", gpu_start_ptrs[ index ] );
-                                  printf( "End: %lu\n", gpu_end_ptrs[ index ] );
                                   copied_this_round += copy_to_pinned_buffer( input,
                                                                               input_to_gpu_pinned,
                                                                               start_index_gpu,
