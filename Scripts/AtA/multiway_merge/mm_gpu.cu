@@ -99,7 +99,7 @@ void copy_to_device_buffer( uint64_t *pinned, uint64_t *dev_ptr,
                               );
 
             result = cudaMemcpyAsync( dev_ptr,
-                                      pinned + ( stream_id * batch_size ) + copied_total,
+                                      pinned + copied_total,
                                       copy_this_round * sizeof( uint64_t ),
                                       cudaMemcpyHostToDevice, stream
                                       );
@@ -132,12 +132,12 @@ uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
                 }
             else
                 {
-            data_copied = std::min( (uint64_t) left_to_copy,
-                                         BATCH_SIZE 
-                                       );
+                    data_copied = std::min( (uint64_t) left_to_copy,
+                                            BATCH_SIZE 
+                                          );
                 }
 
-            std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ),
+            std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ) + data_copied_total,
                          input + copy_index,
                          data_copied * sizeof( uint64_t )
                        );
