@@ -178,18 +178,18 @@ int main( int argc, char **argv )
                   result = create_streams( streams, STREAMSPERGPU );
                   assert( result == cudaSuccess );
 
-                  result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * result_size * 2 * ( 2 + STREAMSPERGPU ) ); // 2 because we merge out of place
+                  result = cudaMalloc( (void**) &output, sizeof( uint64_t ) * BATCH_SIZE * K * 2 * STREAMSPERGPU ); // 2 because we merge out of place
                   assert( result == cudaSuccess );
                   output_second = output + result_size;
 
-                  result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * result_size * ( 2 + STREAMSPERGPU ) );
+                  result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU * ( K + 1 ) );
                   assert( result == cudaSuccess );
 
-                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
+                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * ( K + 1 ) * STREAMSPERGPU );
                   assert( result == cudaSuccess );
 
-                  result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
-                  assert( result == cudaSuccess );
+                  // result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * PINNEDBUFFER * K * STREAMSPERGPU * 2 );
+                  // assert( result == cudaSuccess );
 
                   uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
@@ -206,7 +206,6 @@ int main( int argc, char **argv )
 
                           std::vector<uint64_t> gpu_start_ptrs;
                           std::vector<uint64_t> gpu_end_ptrs;
-
                           gpu_start_ptrs.reserve( K );
                           gpu_end_ptrs.reserve( K );
                           uint64_t start_index_gpu             = 0;
@@ -269,33 +268,37 @@ int main( int argc, char **argv )
                                                                               PINNEDBUFFER
                                                                             );
 
-                                  if( copied_this_round >= PINNEDBUFFER - ( BATCH_SIZE / 4 ) )
+                                  if( copied_this_round >= PINNEDBUFFER - BATCH_SIZE )
                                       {
-                                          copy_to_device_buffer( input_to_gpu_pinned + ( BATCH_SIZE * stream_id ) + copied_so_far,
-                                                                 stream_dev_ptrs     + ( BATCH_SIZE * K * stream_id ) + copied_so_far,
+                                          copy_to_device_buffer( input_to_gpu_pinned + ( PINNEDBUFFER * stream_id * K ) + copied_so_far,
+                                                                 stream_dev_ptrs     + ( BATCH_SIZE  * stream_id ) + copied_so_far,
                                                                  streams[ index ], copied_this_round,
-                                                                 stream_id, BATCH_SIZE
+                                                                 stream_id, PINNEDBUFFER
                                                                );
                                           // copy to the device, we don't want to overrun our space in the buffer
                                           copied_so_far     = copied_this_round;
                                           copied_this_round = 0;
                                       }
                               }
-                          copy_to_device_buffer( input_to_gpu_pinned + ( BATCH_SIZE * stream_id ) + copied_so_far,
-                                                 stream_dev_ptrs     + ( BATCH_SIZE * K * stream_id ) + copied_so_far,
+                          if( copied_this_round )
+                              {
+                                  copy_to_device_buffer( input_to_gpu_pinned +  copied_so_far + ( PINNEDBUFFER * K * stream_id ),
+                                                         stream_dev_ptrs     +  copied_so_far + ( BATCH_SIZE * stream_id ),
                                                  streams[ stream_id ], copied_this_round,
-                                                 stream_id, BATCH_SIZE
+                                                 stream_id, PINNEDBUFFER
                                                );
+                              }
 
                           // do pairwise merging of sublists
                           // merge the first two sublists, after the first merge we alternate
                           // between output buffers
+
                           thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_start_ptrs[ 0 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_end_ptrs[ 0 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_start_ptrs[ 1 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_end_ptrs[ 1 ],
-                                         output + ( BATCH_SIZE * stream_id * K )
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_start_ptrs[ 0 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_end_ptrs[ 0 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_start_ptrs[ 1 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_end_ptrs[ 1 ],
+                                         output //+ ( PINNEDBUFFER * stream_id )
                                        );
                           cudaStreamSynchronize( streams[ stream_id ] );
 
