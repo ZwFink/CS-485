@@ -104,11 +104,12 @@ void copy_to_device_buffer( uint64_t *pinned, uint64_t *dev_ptr,
                                       cudaMemcpyHostToDevice, stream
                                       );
 
-            cudaStreamSynchronize( stream );
-            assert( result == cudaSuccess );
 
             to_copy      -= copy_this_round;
             copied_total += copy_this_round;
+
+            cudaStreamSynchronize( stream );
+            assert( result == cudaSuccess );
         }
     
 
