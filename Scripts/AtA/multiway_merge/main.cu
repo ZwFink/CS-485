@@ -185,11 +185,11 @@ int main( int argc, char **argv )
                   result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * BATCH_SIZE * STREAMSPERGPU * ( K + 1 ) );
                   assert( result == cudaSuccess );
 
-                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * ( K + 1 ) * STREAMSPERGPU );
+                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * ( STREAMSPERGPU + 1 ) );
                   assert( result == cudaSuccess );
 
-                  // result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * PINNEDBUFFER * K * STREAMSPERGPU * 2 );
-                  // assert( result == cudaSuccess );
+                  result = cudaMallocHost( (void**) &result_from_batches_pinned, sizeof( uint64_t ) * PINNEDBUFFER * K * STREAMSPERGPU * 2 );
+                  assert( result == cudaSuccess );
 
                   uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
@@ -268,11 +268,13 @@ int main( int argc, char **argv )
                                                                               PINNEDBUFFER
                                                                             );
 
-                                  if( copied_this_round >= PINNEDBUFFER - BATCH_SIZE )
+                                  if( copied_this_round >= PINNEDBUFFER - ( PINNEDBUFFER / 4 ) )
                                       {
-                                          copy_to_device_buffer( input_to_gpu_pinned + ( PINNEDBUFFER * stream_id * K ) + copied_so_far,
-                                                                 stream_dev_ptrs     + ( BATCH_SIZE  * stream_id ) + copied_so_far,
-                                                                 streams[ index ], copied_this_round,
+                                          fprintf( stderr, "Copy index: %lu\n", copied_so_far + ( PINNEDBUFFER * stream_id ) );
+                                          fprintf( stderr, "Max copy:   %lu\n", PINNEDBUFFER * ( STREAMSPERGPU + 1 ) );
+                                          copy_to_device_buffer( input_to_gpu_pinned + ( PINNEDBUFFER * stream_id ) + copied_so_far,
+                                                                 stream_dev_ptrs     + ( BATCH_SIZE  * stream_id * K) + copied_so_far,
+                                                                 streams[ stream_id ], copied_this_round,
                                                                  stream_id, PINNEDBUFFER
                                                                );
                                           // copy to the device, we don't want to overrun our space in the buffer
@@ -282,8 +284,8 @@ int main( int argc, char **argv )
                               }
                           if( copied_this_round )
                               {
-                                  copy_to_device_buffer( input_to_gpu_pinned +  copied_so_far + ( PINNEDBUFFER * K * stream_id ),
-                                                         stream_dev_ptrs     +  copied_so_far + ( BATCH_SIZE * stream_id ),
+                                  copy_to_device_buffer( input_to_gpu_pinned +  copied_so_far + ( PINNEDBUFFER * stream_id ),
+                                                         stream_dev_ptrs     +  copied_so_far + ( BATCH_SIZE * stream_id * K ),
                                                  streams[ stream_id ], copied_this_round,
                                                  stream_id, PINNEDBUFFER
                                                );
@@ -294,11 +296,11 @@ int main( int argc, char **argv )
                           // between output buffers
 
                           thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_start_ptrs[ 0 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_end_ptrs[ 0 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_start_ptrs[ 1 ],
-                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id ) + gpu_end_ptrs[ 1 ],
-                                         output //+ ( PINNEDBUFFER * stream_id )
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_start_ptrs[ 0 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_end_ptrs[ 0 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_start_ptrs[ 1 ],
+                                         stream_dev_ptrs + ( BATCH_SIZE * stream_id * K ) + gpu_end_ptrs[ 1 ],
+                                         output + ( BATCH_SIZE * stream_id * K )
                                        );
                           cudaStreamSynchronize( streams[ stream_id ] );
 
