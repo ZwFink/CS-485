@@ -32,39 +32,6 @@
 #include "mm_gpu.h"
 #include "mm_utility.h"
 
-void test_sorted_host( uint64_t *data, uint64_t N )
-{
-    uint64_t index = 0;
-    for( index = 0; index < N - 1; ++index )
-        {
-            if( data[ index ] > data[ index + 1 ] )
-                {
-                    printf( "HOST I:        %lu\n", index );
-                    printf( "HOST Index:    %lu\n", data[ index ] );
-                    printf( "HOST Index + 1: %lu\n", data[ index + 1 ] );
-                }
-        }
-}
-void __global__ test_sorted( uint64_t *data, uint64_t *N )
-{
-    unsigned int tid=threadIdx.x+ (blockIdx.x*blockDim.x);
-    uint64_t index = 0;
-
-    if( tid == 0 && *N > 0 )
-        {
-            for( index = 0; index < *N - 1; ++index )
-                {
-                    if( data[ index ] > data[ index + 1 ] )
-                        {
-                            printf( "I:        %lu\n", index );
-                            printf( "Index:    %lu\n", data[ index ] );
-                            printf( "Index + 1: %lu\n", data[ index + 1 ] );
-                        }
-                }
-
-        }
-}
-
 int main( int argc, char **argv )
 {
     uint64_t index, gpu_index;
@@ -223,7 +190,7 @@ int main( int argc, char **argv )
                   result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * K  );
                   assert( result == cudaSuccess );
 
-                  uint64_t *result_from_batches_pinned = input_to_gpu_pinned;
+                  result_from_batches_pinned = input_to_gpu_pinned;
 
                   uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
@@ -267,8 +234,6 @@ int main( int argc, char **argv )
                                   start_index_gpu = start_vectors[ index ][ gpu_index ];
                                   end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
-                                  test_sorted_host( input + start_vectors[ index ][ gpu_index ], end_index_gpu - start_index_gpu );
-
                                   if( gpu_index == 0 )
                                       {
                                           if( index == 0 )
@@ -307,8 +272,6 @@ int main( int argc, char **argv )
                                                                               stream_id,
                                                                               PINNEDBUFFER
                                                                             );
-                                  test_sorted_host( input_to_gpu_pinned + index_offset_pinned_size, copied_this_round );
-
                                   // copy to the device, we don't want to overrun our space in the buffer
                                   // if( copied_this_round >= PINNEDBUFFER - ( PINNEDBUFFER / 4 ) )
                                       // {
@@ -416,18 +379,14 @@ int main( int argc, char **argv )
                                   merged_this_round += gpu_end_ptrs[ index ] - gpu_start_ptrs[ index ] + 1 ;
                               }
 
-                          // for( index = 0; index < K; index++ )
-                          //     {
-                          //         // copy data in BATCH_SIZE chunks from device to host 
-                          //         copy_from_device_buffer( output_arr,
-                          //                                  result_from_batches_pinned,
-                          //                                  output_after_rounds,
-                          //                                  streams[ stream_id ],
-                          //                                  BATCH_SIZE, thread_id, stream_id,
-                          //                                  &gpu_start_ptrs,
-                          //                                  &gpu_end_ptrs
-                          //                                  );
-                          //     }
+                                  // copy data in BATCH_SIZE chunks from device to host 
+                          copy_from_device_buffer( output_arr,
+                                                   result_from_batches_pinned + index_offset_pinned_size,
+                                                   output_after_rounds + index_offset_batch_size + ( EXTRA_SPACE_BATCH * ( index - 1 ) ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
+                                                   streams[ stream_id ],
+                                                   PINNEDBUFFER, thread_id, stream_id,
+                                                   merged_this_round
+                                                 );
                       //     gpu_output_index_prev = gpu_output_index;
                       }
 
