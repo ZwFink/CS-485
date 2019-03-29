@@ -121,7 +121,7 @@ uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
 {
     uint64_t copy_index        = 0;
     uint64_t data_copied       = 0;
-    int64_t left_to_copy       = end_index - start_index;
+    int64_t left_to_copy       = ( end_index - start_index ) + 1;
     uint64_t data_copied_total = 0;
 
     for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
@@ -129,6 +129,7 @@ uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
             // want to make sure that we don't copy extra data
             if( left_to_copy > BATCH_SIZE )
                 {
+                    printf( "Big data!\n" );
                     data_copied = left_to_copy;
                 }
             else
@@ -138,7 +139,7 @@ uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
                                           );
                 }
 
-            std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ) + data_copied_total,
+            std::memcpy( pinned_host + data_copied_total + ( stream_id * BATCH_SIZE ),
                          input + copy_index,
                          data_copied * sizeof( uint64_t )
                        );
@@ -170,45 +171,39 @@ uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vec
     return numCPUBatches == 0 ? 0 : out_val + 1;
 
 }
+
 void copy_from_device_buffer( uint64_t *output_buffer,
                               uint64_t *pinned_buff, 
                               uint64_t *dev_ptr,
                               cudaStream_t stream,
                               uint64_t BATCH_SIZE,
                               int thread_id, int stream_id,
-                              std::vector<uint64_t> *start_ptrs,
-                              std::vector<uint64_t> *end_ptrs
+                              uint64_t num_merged
                               )
 {
 
 
-    uint64_t start_index = (*start_ptrs)[ thread_id ];
-    uint64_t end_index   = (*end_ptrs)[ thread_id ];
-    uint64_t to_transfer = 0;
+    uint64_t to_transfer = num_merged;
     uint64_t offset      = 0;
     uint64_t transferred = 0;
     uint64_t offset_index = thread_id;
+    uint64_t transfer_this_round = 0;
 
     cudaError_t result = cudaSuccess;
 
-    while( offset_index > 0 )
-        {
-            offset += (*end_ptrs)[ offset_index ];
-            offset_index--;
-        }
-    
-    for( ; start_index < end_index; start_index += BATCH_SIZE )
+    while( to_transfer > 0 )
         {
 
-            to_transfer = std::min( BATCH_SIZE, end_index - start_index + 1 );
+            transfer_this_round = std::min( BATCH_SIZE, to_transfer );
 
-            result = cudaMemcpyAsync(  pinned_buff + ( thread_id * BATCH_SIZE ), dev_ptr + to_transfer, to_transfer * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
+            result = cudaMemcpyAsync(  pinned_buff, dev_ptr + transferred, transfer_this_round * sizeof( uint64_t ), cudaMemcpyDeviceToHost, stream );
 
-            assert( result == cudaSuccess );
             cudaStreamSynchronize( stream );
+            assert( result == cudaSuccess );
 
-            std::memcpy( output_buffer + offset_index + transferred, pinned_buff + ( thread_id * BATCH_SIZE ), to_transfer * sizeof( uint64_t ) );
+            std::memcpy( output_buffer + transferred, pinned_buff, transfer_this_round * sizeof( uint64_t ) );
 
-            transferred += to_transfer;
+            to_transfer -= transfer_this_round;
+            transferred += transfer_this_round;
         }
 }

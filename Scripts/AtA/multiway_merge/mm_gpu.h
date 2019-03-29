@@ -27,8 +27,7 @@ void copy_from_device_buffer( uint64_t *output_buffer,
                               cudaStream_t stream,
                               uint64_t BATCH_SIZE,
                               int thread_id, int stream_id,
-                              std::vector<uint64_t> *start_ptrs,
-                              std::vector<uint64_t> *end_ptrs
+                              uint64_t num_merged
                               );
 #endif // MM_GPU_HH_INCLUDED
 
