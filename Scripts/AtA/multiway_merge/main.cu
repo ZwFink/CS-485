@@ -36,7 +36,7 @@ int main( int argc, char **argv )
 {
     uint64_t index, gpu_index;
     unsigned int numCPUBatches, numGPUBatches;
-    const uint64_t EXTRA_SPACE_BATCH = 10000;
+    const uint64_t EXTRA_SPACE_BATCH = 20000;
 	
     omp_set_num_threads(NTHREADS);
 	omp_set_nested(1);
@@ -53,7 +53,7 @@ int main( int argc, char **argv )
 	
 	//Read in parameters from file:
 	//dataset filename and cluster instance file
-	if ( argc != 5 )
+	if ( argc != 6 )
 	{
 		printf( "\n\nIncorrect number of input parameters.  \nShould include a seed for the random number generator, "
 				"the number of elements, N, the batch size, and the number of lists, K\n"
@@ -61,6 +61,8 @@ int main( int argc, char **argv )
 		return 0;
 	}
 	
+	double cpu_frac = atof( argv[ 5 ] );
+
 	//copy parameters from commandline:
 	char inputseed[ 500 ];
 	strcpy( inputseed, argv[ 1 ] );
@@ -121,7 +123,7 @@ int main( int argc, char **argv )
 	compute_batches( sublist_size, input, &first_sublist_ends, BATCH_SIZE, sublist_size );
 	
     // split the data between CPU and GPU for hybrid searches
-	numCPUBatches = ( first_sublist_ends.size() - 1 ) * CPUFRAC;
+	numCPUBatches = ( first_sublist_ends.size() - 1 ) * cpu_frac;
 	numGPUBatches = ( first_sublist_ends.size() - 1 ) - numCPUBatches;
 
     printf( "\nNumber of CPU batches: %u, Number of GPU batches: %u\n", numCPUBatches, numGPUBatches );
@@ -231,6 +233,7 @@ int main( int argc, char **argv )
                           // copy each batch to a pinned buffer
                           for( index = 0; index < K; index++ )
                               {
+                                  uint64_t copied_prev_round = 0;
                                   // copy data in BATCH_SIZE chunks from host memory to pinned memory
                                   start_index_gpu = start_vectors[ index ][ gpu_index ];
                                   end_index_gpu   = end_vectors[ index ][ gpu_index ];
@@ -266,27 +269,27 @@ int main( int argc, char **argv )
                                   start_index_prev = gpu_start_ptrs[ index ];
                                   end_index_prev   = gpu_end_ptrs[ index ];
 
-                                  to_copy = ( end_index_prev - end_index_prev ) + 1;
+                                  to_copy = ( end_index_prev - start_index_prev ) + 1;
 
                                   while( to_copy > 0 )
                                       {
-                                          copied_this_round += copy_to_pinned_buffer( input,
-                                                                                      input_to_gpu_pinned + copied_this_round,
-                                                                                      start_index_gpu,
-                                                                                      end_index_gpu,
-                                                                                      stream_id,
-                                                                                      PINNEDBUFFER
-                                                                                      );
+                                          copied_this_round = copy_to_pinned_buffer( input,
+                                                                                     input_to_gpu_pinned,
+                                                                                     start_index_gpu + copied_prev_round,
+                                                                                     to_copy,
+                                                                                     stream_id,
+                                                                                     PINNEDBUFFER
+                                                                                   );
                                           // copy to the device, we don't want to overrun our space in the buffer
                                           copy_to_device_buffer( input_to_gpu_pinned + index_offset_pinned_size,
-                                                                 stream_dev_ptrs     + index_offset_batch_size + copied_so_far + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH  ),
+                                                                 stream_dev_ptrs     + index_offset_batch_size + copied_so_far + ( EXTRA_SPACE_BATCH *  index ) + ( K * stream_id * EXTRA_SPACE_BATCH  ),
                                                                  streams[ stream_id ], copied_this_round,
                                                                  stream_id, PINNEDBUFFER
                                                                  );
 
-                                          to_copy -= copied_this_round;
+                                          copied_prev_round += copied_this_round;
+                                          to_copy          -= copied_this_round;
                                           copied_so_far    += copied_this_round;
-                                          copied_this_round = 0;
                                       }
                               }
                           // do pairwise merging of sublists
