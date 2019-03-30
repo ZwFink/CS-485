@@ -226,6 +226,7 @@ int main( int argc, char **argv )
                           uint64_t index_offset_extra       = EXTRA_SPACE_BATCH * stream_id;
                           uint64_t index_offset_batch_size  = ( BATCH_SIZE * stream_id * K );
                           uint64_t index_offset_pinned_size = PINNEDBUFFER * stream_id;
+                          int64_t to_copy = 0;
 
                           // copy each batch to a pinned buffer
                           for( index = 0; index < K; index++ )
@@ -265,24 +266,28 @@ int main( int argc, char **argv )
                                   start_index_prev = gpu_start_ptrs[ index ];
                                   end_index_prev   = gpu_end_ptrs[ index ];
 
-                                  copied_this_round += copy_to_pinned_buffer( input,
-                                                                              input_to_gpu_pinned + copied_this_round,
-                                                                              start_index_gpu,
-                                                                              end_index_gpu,
-                                                                              stream_id,
-                                                                              PINNEDBUFFER
-                                                                            );
-                                  // copy to the device, we don't want to overrun our space in the buffer
-                                  // if( copied_this_round >= PINNEDBUFFER - ( PINNEDBUFFER / 4 ) )
-                                      // {
+                                  to_copy = ( end_index_prev - end_index_prev ) + 1;
+
+                                  while( to_copy > 0 )
+                                      {
+                                          copied_this_round += copy_to_pinned_buffer( input,
+                                                                                      input_to_gpu_pinned + copied_this_round,
+                                                                                      start_index_gpu,
+                                                                                      end_index_gpu,
+                                                                                      stream_id,
+                                                                                      PINNEDBUFFER
+                                                                                      );
+                                          // copy to the device, we don't want to overrun our space in the buffer
                                           copy_to_device_buffer( input_to_gpu_pinned + index_offset_pinned_size,
                                                                  stream_dev_ptrs     + index_offset_batch_size + copied_so_far + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH  ),
                                                                  streams[ stream_id ], copied_this_round,
                                                                  stream_id, PINNEDBUFFER
-                                                               );
+                                                                 );
+
+                                          to_copy -= copied_this_round;
                                           copied_so_far    += copied_this_round;
                                           copied_this_round = 0;
-                                      // }
+                                      }
                               }
                           // do pairwise merging of sublists
                           // merge the first two sublists, after the first merge we alternate
