@@ -88,67 +88,46 @@ void copy_to_device_buffer( uint64_t *pinned, uint64_t *dev_ptr,
 {
     uint64_t to_copy         = to_transfer;
     uint64_t copy_this_round = 0;
-    uint64_t copied_total    = 0;
     cudaError_t result = cudaSuccess;
 
-    while( to_copy > 0 )
-        {
             
-            copy_this_round = std::min(  to_copy,
-                                         batch_size
+    copy_this_round = std::min(  to_copy,
+                                 batch_size
                               );
 
-            result = cudaMemcpyAsync( dev_ptr,
-                                      pinned + copied_total,
-                                      copy_this_round * sizeof( uint64_t ),
-                                      cudaMemcpyHostToDevice, stream
-                                      );
+    result = cudaMemcpyAsync( dev_ptr,
+                              pinned,
+                              copy_this_round * sizeof( uint64_t ),
+                              cudaMemcpyHostToDevice, stream
+                              );
 
 
-            to_copy      -= copy_this_round;
-            copied_total += copy_this_round;
-
-            cudaStreamSynchronize( stream );
-            assert( result == cudaSuccess );
-        }
+    cudaStreamSynchronize( stream );
+    assert( result == cudaSuccess );
     
 
 }
 uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
-                                uint64_t start_index, uint64_t end_index,
+                                uint64_t start_index, uint64_t to_copy,
                                 uint64_t stream_id, uint64_t BATCH_SIZE
                               )
 {
-    uint64_t copy_index        = 0;
     uint64_t data_copied       = 0;
-    int64_t left_to_copy       = ( end_index - start_index ) + 1;
-    uint64_t data_copied_total = 0;
+    uint64_t left_to_copy       = to_copy;
 
-    for( copy_index = start_index; left_to_copy > 0; copy_index += BATCH_SIZE )
-        {
-            // want to make sure that we don't copy extra data
-            if( left_to_copy > BATCH_SIZE )
-                {
-                    printf( "Big data!\n" );
-                    data_copied = left_to_copy;
-                }
-            else
-                {
-                    data_copied = std::min( (uint64_t) left_to_copy,
-                                            BATCH_SIZE 
-                                          );
-                }
+    // want to make sure that we don't copy extra data
 
-            std::memcpy( pinned_host + data_copied_total + ( stream_id * BATCH_SIZE ),
-                         input + copy_index,
-                         data_copied * sizeof( uint64_t )
-                       );
+    data_copied = std::min( left_to_copy,
+                            BATCH_SIZE 
+                            );
 
-            data_copied_total += data_copied;
-            left_to_copy      -= data_copied;
-        }
+    std::memcpy( pinned_host + ( stream_id * BATCH_SIZE ),
+                 input + start_index,
+                 data_copied * sizeof( uint64_t )
+                 );
 
-    return data_copied_total;
+
+    return data_copied;
 }
 
 uint64_t get_gpu_output_index( const std::vector<std::vector<uint64_t>> *end_vectors,

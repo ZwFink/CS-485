@@ -18,7 +18,7 @@ void copy_to_device_buffer( uint64_t *pinned, uint64_t *dev_ptr,
                           );
 
 uint64_t copy_to_pinned_buffer( uint64_t *input, uint64_t *pinned_host,
-                                uint64_t start_index, uint64_t end_index,
+                                uint64_t start_index, uint64_t to_copy,
                                 uint64_t stream_id, uint64_t BATCH_SIZE
                                 );
 void copy_from_device_buffer( uint64_t *output_buffer,
