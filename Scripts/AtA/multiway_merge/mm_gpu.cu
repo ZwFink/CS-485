@@ -163,9 +163,7 @@ void copy_from_device_buffer( uint64_t *output_buffer,
 
 
     uint64_t to_transfer = num_merged;
-    uint64_t offset      = 0;
     uint64_t transferred = 0;
-    uint64_t offset_index = thread_id;
     uint64_t transfer_this_round = 0;
 
     cudaError_t result = cudaSuccess;

@@ -105,6 +105,20 @@ void compute_batches( uint64_t N, uint64_t *input, std::vector<uint64_t> *batch_
 	batch_offsets->push_back( N - 1 );
 }
 
+int is_sorted( uint64_t *start, uint64_t num_items )
+{
+    uint64_t index = 0;
+    int sorted     = 1;
+
+    for( index = 0; index < num_items - 1; ++index )
+        {
+            if( start[ index ] > start[ index + 1 ] )
+                {
+                    sorted = 1;
+                }
+        }
+    return sorted;
+}
 
 std::vector<uint64_t*> *generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t total_elements, unsigned int seed, uint16_t k )
 {
@@ -137,21 +151,4 @@ std::vector<uint64_t*> *generate_k_sorted_sublists( uint64_t *base_ptr, uint64_t
         }
     return list_ptrs;
 }
-
-int is_sorted( uint64_t *start, uint64_t num_items )
-{
-    uint64_t index = 0;
-    int sorted     = 1;
-
-    for( index = 0; index < num_items - 1; ++index )
-        {
-            if( start[ index ] > start[ index + 1 ] )
-                {
-                    sorted = 0;
-                }
-        }
-    return sorted;
-}
-
-
 

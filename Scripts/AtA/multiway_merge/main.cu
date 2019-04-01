@@ -165,17 +165,14 @@ int main( int argc, char **argv )
           if( numGPUBatches > 0 )
               {
                   cudaStream_t streams[ STREAMSPERGPU ];
-                  const int NUM_THREADS_SEARCH = 4;
                   cudaError_t result = cudaSuccess;
-                  uint64_t result_size = BATCH_SIZE * K * 2;
-                  uint64_t stream_size = BATCH_SIZE * K * 2;
                   uint64_t *output = nullptr;
                   uint64_t *stream_dev_ptrs         = nullptr;
                   uint64_t *input_to_gpu_pinned = nullptr;
                   uint64_t *output_second = nullptr;
                   uint64_t *result_from_batches_pinned = nullptr;
 
-                  uint64_t gpu_output_index = get_gpu_output_index( &end_vectors, numCPUBatches, NUM_THREADS_SEARCH );
+                  uint64_t gpu_output_index = get_gpu_output_index( &end_vectors,  numCPUBatches, STREAMSPERGPU );
 
 
                   result = create_streams( streams, STREAMSPERGPU );
@@ -197,7 +194,7 @@ int main( int argc, char **argv )
                   uint64_t *output_after_rounds = K % 2 ? output_second : output;
 
                   #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( input_to_gpu_pinned, result_from_batches_pinned, gpu_output_index, \
-                                                                                stream_dev_ptrs, result_size, stream_size, streams, output, \
+                                                                                stream_dev_ptrs, streams, output, \
                                                                                 output_second, K ) \
                       private( result, gpu_index, index )
                   for( gpu_index = numCPUBatches; gpu_index < numGPUBatches + numCPUBatches; ++gpu_index )
@@ -212,11 +209,8 @@ int main( int argc, char **argv )
                           gpu_start_ptrs.reserve( K );
                           gpu_end_ptrs.reserve( K );
                           uint64_t start_index_gpu             = 0;
-                          uint64_t end_index_gpu               = 0;
                           uint64_t merged_this_round           = 0;
                           uint64_t gpu_output_index_prev       = 0;
-                          uint64_t gpu_output_start            = 0;
-                          uint64_t gpu_output_end              = 0;
                           uint64_t copied_this_round           = 0;
                           uint64_t copied_so_far               = 0;
 
@@ -225,18 +219,17 @@ int main( int argc, char **argv )
                           uint64_t start_index_prev = 0;
                           uint64_t end_index_prev   = 0;
 
-                          uint64_t index_offset_extra       = EXTRA_SPACE_BATCH * stream_id;
                           uint64_t index_offset_batch_size  = ( BATCH_SIZE * stream_id * K );
                           uint64_t index_offset_pinned_size = PINNEDBUFFER * stream_id;
                           int64_t to_copy = 0;
 
+                          gpu_output_index_prev = gpu_output_index;
                           // copy each batch to a pinned buffer
                           for( index = 0; index < K; index++ )
                               {
                                   uint64_t copied_prev_round = 0;
                                   // copy data in BATCH_SIZE chunks from host memory to pinned memory
                                   start_index_gpu = start_vectors[ index ][ gpu_index ];
-                                  end_index_gpu   = end_vectors[ index ][ gpu_index ];
 
                                   if( gpu_index == 0 )
                                       {
@@ -312,27 +305,6 @@ int main( int argc, char **argv )
                               {
                                   if( !( index % 2 ) )
                                       {
-
-                                  //         thrust::sort( thrust::cuda::par.on( streams[ stream_id ] ),
-                                  //                       output + index_offset_batch_size,
-                                  //                        output + index_offset_batch_size + merged_this_round
-                                  //                       );
-                                  // cudaStreamSynchronize( streams[ stream_id ] );
-                                  //         thrust::sort( thrust::cuda::par.on( streams[ stream_id ] ),
-                                  //                                             stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ),
-                                  //                                             stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index )
-                                  //                                             );
-
-                                  // cudaStreamSynchronize( streams[ stream_id ] );
-
-                                          // thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * ( index - 1 ) ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * ( index - 1 ) ),
-                                          //                output + index_offset_batch_size + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index ),
-                                          //                output + index_offset_batch_size + merged_this_round + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index ),
-                                          //                output_second + index_offset_batch_size + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index )
-                                          //              );
-
                                           thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
                                                          stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
                                                          stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
@@ -346,34 +318,6 @@ int main( int argc, char **argv )
                                       }
                                   else
                                       {
-        //                                   printf( "merging 2\n" );
-        //                                   thrust::sort( thrust::cuda::par.on( streams[ stream_id ] ),
-        //                                                 output_second + index_offset_batch_size,
-        //                                                  output_second + index_offset_batch_size + merged_this_round
-        //                                                 );
-        //                           cudaStreamSynchronize( streams[ stream_id ] );
-        // thrust::sort( thrust::cuda::par.on( streams[ stream_id ] ),
-        //                                                                       stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ),
-        //                                                                       stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index )
-        //                                                                       );
-
-
-        //                           cudaStreamSynchronize( streams[ stream_id ] );
-
-                                          // thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * ( index - 1 ) ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * ( index - 1 ) ),
-                                          //                output_second + index_offset_batch_size + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index ),
-                                          //                output_second + index_offset_batch_size + merged_this_round + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index ),
-                                          //                output + index_offset_batch_size + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * index )
-                                          //              );
-                                          // printf( "Merging 2\n" );
-                                          // thrust::sort( thrust::cuda::par.on( streams[ stream_id ] ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index + 1 ] + ( EXTRA_SPACE_BATCH * ( index + 1 ) ) + ( K * stream_id ),
-                                          //                stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index   + 1 ] + ( EXTRA_SPACE_BATCH * ( index + 1 ) ) + ( K * stream_id )
-                                          //               );
-                                          // cudaStreamSynchronize( streams[ stream_id ] );
-
                                           thrust::merge( thrust::cuda::par.on( streams[ stream_id ] ),
                                                          stream_dev_ptrs + index_offset_batch_size + gpu_start_ptrs[ index ] + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
                                                          stream_dev_ptrs + index_offset_batch_size + gpu_end_ptrs[ index ]   + ( EXTRA_SPACE_BATCH * index ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
@@ -388,14 +332,14 @@ int main( int argc, char **argv )
                               }
 
                                   // copy data in BATCH_SIZE chunks from device to host 
-                          copy_from_device_buffer( output_arr,
+                          copy_from_device_buffer( output_arr + gpu_output_index_prev,
                                                    result_from_batches_pinned + index_offset_pinned_size,
                                                    output_after_rounds + index_offset_batch_size + ( EXTRA_SPACE_BATCH * ( index - 1 ) ) + ( K * stream_id * EXTRA_SPACE_BATCH ),
                                                    streams[ stream_id ],
                                                    PINNEDBUFFER, thread_id, stream_id,
                                                    merged_this_round
                                                  );
-                      //     gpu_output_index_prev = gpu_output_index;
+                          gpu_output_index_prev = gpu_output_index;
                       }
 
                   tendgpu = omp_get_wtime();
@@ -423,7 +367,10 @@ int main( int argc, char **argv )
         {
             printf( "WARNING: The output array is not sorted as it should be!\n" );
         }
-        
+    else
+        {
+            printf( "SUCCESS: The output array is sorted.\n" );
+        }
 
     free( input );
     free( output_arr );
