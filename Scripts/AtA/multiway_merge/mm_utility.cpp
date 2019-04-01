@@ -112,9 +112,9 @@ int is_sorted( uint64_t *start, uint64_t num_items )
 
     for( index = 0; index < num_items - 1; ++index )
         {
-            if( start[ index ] > start[ index + 1 ] )
+            if( start[ index + 1 ] - start[ index ] < 0 )
                 {
-                    sorted = 1;
+                    sorted = 0;
                 }
         }
     return sorted;
