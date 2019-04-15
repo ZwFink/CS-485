@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import re
 
+def five(obj):
+    return obj.k
 def main():
     filename = '../gpu_only_out.txt'
 
     parsed = parse( filename )
-    print( 'h' )
+    parsed.set_hash( five )
 
+    for item in parsed.get():
+        print( hash( item ) )
 class ScriptRun:
     def __init__( self, seed = 42,
                   input_size = 10, batch_size = 4,
@@ -29,17 +33,25 @@ class ScriptRun:
         self.time_gpu_only   = time_gpu_only
         self.load_imbalance  = load_imbalance
 
+    def self_hash( self ):
+        return hash( seed )
+
+    def __hash__( self ):
+        return self.self_hash( self )
+        
 class ScriptRunCollection:
     def __init__( self ):
         self.script_runs = list()
     def add( self, new_run ):
-        self.script_runs.add( new_run )
+        self.script_runs.append( new_run )
     def set_hash( self, hash_fn ):
         for run in self.script_runs:
-            run.__hash__ = hash_fn
+            run.self_hash = hash_fn
+    def get( self ):
+        return self.script_runs
 
 def parse( filename ):
-    out_recs = list()
+    out_recs = ScriptRunCollection()
     num_batch_re     = re.compile( 'Number of CPU batches: (\d+), Number of GPU batches: (\d+)' )
     time_total       = re.compile( "Time CPU and GPU \(total time\): (\d+\.\d+)" )
     time_cpu_only_re = re.compile( "Time CPU Only: (\d+\.\d+)" )
@@ -50,7 +62,7 @@ def parse( filename ):
             if line:
                 if 'Seed' in line:
                     current = ScriptRun()
-                    out_recs.append( current )
+                    out_recs.add( current )
                     current.seed = int( line.strip().split()[ 5 ] )
                 elif 'Input size:' in line:
                     current.input_size = int( line.strip().split()[ 2 ] )
