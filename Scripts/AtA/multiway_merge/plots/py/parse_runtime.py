@@ -11,6 +11,8 @@ def main():
 
     for item in parsed.get():
         print( hash( item ) )
+    print( parsed.get_attr( 'num_batches' ) )
+
 class ScriptRun:
     def __init__( self, seed = 42,
                   input_size = 10, batch_size = 4,
@@ -49,6 +51,12 @@ class ScriptRunCollection:
             run.self_hash = hash_fn
     def get( self ):
         return self.script_runs
+
+    def get_attr( self, attr ):
+        out_data = list()
+        for run in self.script_runs:
+            out_data.append( getattr( run, attr ) ) 
+        return out_data
 
 def parse( filename ):
     out_recs = ScriptRunCollection()
