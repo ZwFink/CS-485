@@ -186,7 +186,7 @@ int main( int argc, char **argv )
                   result = cudaMalloc( (void**) &stream_dev_ptrs, sizeof( uint64_t ) * ( ( BATCH_SIZE * STREAMSPERGPU * 2 * K ) + ( K * STREAMSPERGPU * EXTRA_SPACE_BATCH ) ) ); 
                   assert( result == cudaSuccess );
 
-                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * K  );
+                  result = cudaMallocHost( (void**) &input_to_gpu_pinned, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU  );
                   assert( result == cudaSuccess );
 
                   result_from_batches_pinned = input_to_gpu_pinned;
