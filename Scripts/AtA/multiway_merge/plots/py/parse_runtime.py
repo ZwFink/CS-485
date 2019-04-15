@@ -3,11 +3,13 @@ import re
 
 def five(obj):
     return obj.k
+
 def main():
     filename = '../gpu_only_out.txt'
 
     parsed = parse( filename )
     parsed.set_hash( five )
+    parsed.set_hash( lambda x : hash( getattr( x, 'num_batches' ) ) )
 
     for item in parsed.get():
         print( hash( item ) )
