@@ -29,6 +29,14 @@ class ScriptRun:
         self.time_gpu_only   = time_gpu_only
         self.load_imbalance  = load_imbalance
 
+class ScriptRunCollection:
+    def __init__( self ):
+        self.script_runs = list()
+    def add( self, new_run ):
+        self.script_runs.add( new_run )
+    def set_hash( self, hash_fn ):
+        for run in self.script_runs:
+            run.__hash__ = hash_fn
 
 def parse( filename ):
     out_recs = list()
