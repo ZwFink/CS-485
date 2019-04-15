@@ -14,17 +14,19 @@ def main():
     for item in parsed.get():
         print( hash( item ) )
     print( parsed.get_attr( 'num_batches' ) )
+    # print( parsed.get()[ 0 ].__dict__ )
+    print( parsed.as_dict( 'total_time' ) )
 
 class ScriptRun:
-    def __init__( self, seed = 42,
-                  input_size = 10, batch_size = 4,
-                  k = 2, total_size = 0, num_batches = 0,
-                  num_cpu_batches = 0, num_gpu_batches = 0,
-                  total_time = 0.0,
-                  time_cpu_only = 0.0, time_gpu_only = 0.0,
-                  load_imbalance = 0.0
+    def __init__( self, seed = None,
+                  input_size = None, batch_size = None,
+                  k = None, total_size = None, num_batches = None,
+                  num_cpu_batches = None, num_gpu_batches = None,
+                  total_time = None,
+                  time_cpu_only = None, time_gpu_only = None,
+                  load_imbalance = None
                 ):
-        self.seed = seed
+        self.seed            = seed
         self.input_size      = input_size
         self.batch_size      = batch_size
         self.k               = k
@@ -42,6 +44,10 @@ class ScriptRun:
 
     def __hash__( self ):
         return self.self_hash( self )
+
+    def is_complete( self ):
+        # We couldnt' parse all data for a run, maybe it crashed or something
+        return not( None in self.__dict__.values() )
         
 class ScriptRunCollection:
     def __init__( self ):
@@ -52,13 +58,30 @@ class ScriptRunCollection:
         for run in self.script_runs:
             run.self_hash = hash_fn
     def get( self ):
-        return self.script_runs
+        out_list = list()
+        for item in self.script_runs:
+            if item.is_complete():
+                out_list.append( item )
+        return out_list
 
     def get_attr( self, attr ):
         out_data = list()
         for run in self.script_runs:
-            out_data.append( getattr( run, attr ) ) 
+            if run.is_complete():
+                out_data.append( self.get_attr_single( run, attr ) )
         return out_data
+
+    def get_attr_single( self, item, attr ):
+        return getattr( item, attr )
+
+    def as_dict( self, key_attr ):
+        out_dict = {}
+        for run in self.script_runs:
+            attr = self.get_attr_single( run, key_attr )
+            if attr not in out_dict:
+                out_dict[ attr ] = list()
+            out_dict[ attr ].append( run )
+        return out_dict
 
 def parse( filename ):
     out_recs = ScriptRunCollection()
