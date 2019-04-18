@@ -92,6 +92,7 @@ int main( int argc, char **argv )
 
     // 0'th item is maximum for CPU, each consecutive is for the maximum for each stream
     uint64_t maximums[ STREAMSPERGPU + 1 ] = { 0 };
+    uint64_t global_max = 0;
     #pragma omp parallel sections
     {
 
@@ -120,11 +121,24 @@ int main( int argc, char **argv )
         // gpu section
         #pragma omp section
         {
+            if( num_gpu_batches > 0 )
+                {
 
+                }
         }
+
     }
 
-    printf( "Max: %lu\n", maximums[ 0 ] );
+    uint64_t max_index = 0;
+    for( max_index = 0; max_index < STREAMSPERGPU + 1; ++max_index )
+        {
+            if( maximums[ max_index ] > global_max )
+                {
+                    global_max = maximums[ max_index ];
+                }
+        }
+        
+    printf( "Max: %lu\n", global_max );
     printf( "CPU only time: %f\n", get_elapsed( &cpu_only ) );
 
     free( data );
