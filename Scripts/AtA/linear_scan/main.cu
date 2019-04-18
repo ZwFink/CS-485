@@ -52,6 +52,11 @@ int main( int argc, char **argv )
     uint64_t num_cpu_batches   = total_num_batches * commandline_args.cpu_frac;
     uint64_t num_gpu_batches   = total_num_batches - num_cpu_batches;
 
+    time_data data_creation;
+    time_data cpu_only;
+    time_data gpu_only;
+    time_data total_time;
+
     std::vector<uint64_t> batch_indices;
     batch_indices.reserve( total_num_batches );
 
@@ -72,6 +77,12 @@ int main( int argc, char **argv )
     printf( "Number of GPU Batches: %lu\n", num_gpu_batches );
 
     assert( num_cpu_batches + num_gpu_batches == total_num_batches );
+
+    data_creation.start = omp_get_wtime();
+    generate_dataset( data, commandline_args.N, commandline_args.seed );
+    data_creation.end = omp_get_wtime();
+
+    printf( "Time to create dataset: %f\n", get_elapsed( &data_creation ) );
 
 
     free( data );

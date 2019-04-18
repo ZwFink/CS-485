@@ -67,3 +67,8 @@ void generate_dataset( uint64_t *data, uint64_t num_items, int seed )
         data[ index ] = dis( gen );
     }
 }
+
+double get_elapsed( time_data *data )
+{
+    return data->end - data->start;
+}
