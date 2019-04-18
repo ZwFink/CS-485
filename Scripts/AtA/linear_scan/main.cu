@@ -62,6 +62,17 @@ int main( int argc, char **argv )
 
     uint64_t *data = (uint64_t*) malloc( sizeof( uint64_t ) * commandline_args.N );
 
+    // report data
+	printf( "\nSeed for random number generator: %d", commandline_args.seed );
+	printf( "\nInput size: %lu", commandline_args.N );
+	printf( "\nBatch size: %lu", commandline_args.batch_size );
+    printf( "\nTotal number of batches: %lu\n", total_num_batches );
+    printf( "\nFraction of batches sent to the CPU: %.2f\n", commandline_args.cpu_frac );
+    printf( "Number of CPU Batches: %lu\n", num_cpu_batches );
+    printf( "Number of GPU Batches: %lu\n", num_gpu_batches );
+
+    assert( num_cpu_batches + num_gpu_batches == total_num_batches );
+
 
     free( data );
     return EXIT_SUCCESS;
