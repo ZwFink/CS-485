@@ -39,7 +39,14 @@ int main( int argc, char **argv )
 
     args commandline_args;
 
-    parse_args( &commandline_args, argc, &argv );
+    int args_success = parse_args( &commandline_args, argc, &argv );
+
+    if( !args_success )
+        {
+            report_args_failure();
+
+            return EXIT_FAILURE;
+        }
 
 	////////////////
 	//Turn on gpu

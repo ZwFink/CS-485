@@ -45,3 +45,11 @@ int parse_args( args *dest, int argc, char ***argv )
 
     return 1;
 }
+
+void report_args_failure( void )
+{
+    printf( "Incorrect args, must include seed for random number generation, "
+            "N, the number of elements to scan, batch_size, the number of elements "
+            "per batch, and cpu_frac, the fraction of batches to send to the CPU.\n"
+          );
+}

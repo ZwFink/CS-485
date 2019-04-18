@@ -11,5 +11,6 @@ typedef struct args
 } args;
 
 int parse_args( args *dest, int argc, char ***argv );
+void report_args_failure( void );
 
 #endif // LS_UTILITY_INCLUDED
