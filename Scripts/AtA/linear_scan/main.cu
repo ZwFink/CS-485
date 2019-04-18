@@ -28,10 +28,20 @@
 
 // custom inclusions
 #include "omp.h"
+#include "ls_gpu.h"
+#include "ls_cpu.h"
+#include "ls_utility.h"
 
 int main( int argc, char **argv )
 {
+    omp_set_num_threads(NTHREADS);
+    omp_set_nested(1);
 
+	////////////////
+	//Turn on gpu
+	printf("\nTurning on the GPU...\n");
+	warm_up_gpu( 0 );
+	
 
     return EXIT_SUCCESS;
 }
