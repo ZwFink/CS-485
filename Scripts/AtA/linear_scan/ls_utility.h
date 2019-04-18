@@ -20,5 +20,6 @@ int parse_args( args *dest, int argc, char ***argv );
 void report_args_failure( void );
 void generate_dataset( uint64_t *data, uint64_t num_items, int seed );
 double get_elapsed( time_data *data );
+void compute_batches( std::vector<uint64_t> *vector_ptr, uint64_t n, uint64_t batch_size );
 
 #endif // LS_UTILITY_INCLUDED

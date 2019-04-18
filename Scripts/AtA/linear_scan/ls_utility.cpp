@@ -68,6 +68,16 @@ void generate_dataset( uint64_t *data, uint64_t num_items, int seed )
     }
 }
 
+void compute_batches( std::vector<uint64_t> *vector_ptr, uint64_t n, uint64_t batch_size )
+{
+    uint64_t index = 0;
+
+    for( index = 0 ; index < n / batch_size; ++index )
+        {
+            vector_ptr->push_back(  ( ( index + 1 ) * batch_size ) - 1 );
+        }
+}
+
 double get_elapsed( time_data *data )
 {
     return data->end - data->start;

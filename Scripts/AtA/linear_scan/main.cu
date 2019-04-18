@@ -84,6 +84,12 @@ int main( int argc, char **argv )
 
     printf( "Time to create dataset: %f\n", get_elapsed( &data_creation ) );
 
+    cpu_only.start   = omp_get_wtime();
+    gpu_only.start   = omp_get_wtime();
+    total_time.start = omp_get_wtime();
+
+    compute_batches( &batch_indices, commandline_args.N, commandline_args.batch_size );
+
 
     free( data );
     return EXIT_SUCCESS;
