@@ -90,6 +90,42 @@ int main( int argc, char **argv )
 
     compute_batches( &batch_indices, commandline_args.N, commandline_args.batch_size );
 
+    // 0'th item is maximum for CPU, each consecutive is for the maximum for each stream
+    uint64_t maximums[ STREAMSPERGPU + 1 ] = { 0 };
+    #pragma omp parallel sections
+    {
+
+        // cpu section
+        #pragma omp section
+        {
+            uint64_t cpu_index = 0;
+            uint64_t my_max    = 0;
+
+            if( num_cpu_batches > 0 )
+                {
+                    #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
+                    for( cpu_index = 0; cpu_index < batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
+                        {
+                            if( data[ cpu_index ] > my_max )
+                                {
+                                    my_max = data[ cpu_index ];
+                                }
+                        }
+                    maximums[ 0 ] = my_max;
+
+                    cpu_only.end = omp_get_wtime();
+                }
+        }
+
+        // gpu section
+        #pragma omp section
+        {
+
+        }
+    }
+
+    printf( "Max: %lu\n", maximums[ 0 ] );
+    printf( "CPU only time: %f\n", get_elapsed( &cpu_only ) );
 
     free( data );
     return EXIT_SUCCESS;
