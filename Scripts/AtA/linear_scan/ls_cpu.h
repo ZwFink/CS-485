@@ -1,0 +1,5 @@
+#ifndef LS_CPU_INCLUDED
+#define LS_CPU_INCLUDED
+
+
+#endif // LS_CPU_INCLUDED
