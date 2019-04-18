@@ -34,7 +34,7 @@
 
 int main( int argc, char **argv )
 {
-    omp_set_num_threads(NTHREADS);
+    omp_set_num_threads( NTHREADS );
     omp_set_nested(1);
 
     args commandline_args;
@@ -48,11 +48,21 @@ int main( int argc, char **argv )
             return EXIT_FAILURE;
         }
 
+    uint64_t total_num_batches = commandline_args.N / commandline_args.batch_size;
+    uint64_t num_cpu_batches   = total_num_batches * commandline_args.cpu_frac;
+    uint64_t num_gpu_batches   = total_num_batches - num_cpu_batches;
+
+    std::vector<uint64_t> batch_indices;
+    batch_indices.reserve( total_num_batches );
+
 	////////////////
 	//Turn on gpu
 	printf("\nTurning on the GPU...\n");
 	warm_up_gpu( 0 );
-	
 
+    uint64_t *data = (uint64_t*) malloc( sizeof( uint64_t ) * commandline_args.N );
+
+
+    free( data );
     return EXIT_SUCCESS;
 }
