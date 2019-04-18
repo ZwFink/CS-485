@@ -53,3 +53,17 @@ void report_args_failure( void )
             "per batch, and cpu_frac, the fraction of batches to send to the CPU.\n"
           );
 }
+
+void generate_dataset( uint64_t *data, uint64_t num_items, int seed )
+{
+    uint64_t index = 0;
+	//rng for the keys
+	std::mt19937 gen( seed ); 
+	//transform the randomly generated numbers into uniform distribution of ints
+	std::uniform_int_distribution<uint64_t> dis( 0, num_items );
+
+	for( index = 0; index < num_items; ++index )
+	{
+        data[ index ] = dis( gen );
+    }
+}
