@@ -37,6 +37,10 @@ int main( int argc, char **argv )
     omp_set_num_threads(NTHREADS);
     omp_set_nested(1);
 
+    args commandline_args;
+
+    parse_args( &commandline_args, argc, &argv );
+
 	////////////////
 	//Turn on gpu
 	printf("\nTurning on the GPU...\n");
