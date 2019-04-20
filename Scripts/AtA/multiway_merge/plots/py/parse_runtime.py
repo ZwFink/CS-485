@@ -17,6 +17,10 @@ def main():
     # print( parsed.get()[ 0 ].__dict__ )
     print( parsed.as_dict( 'total_time' ) )
 
+    data = parse( '../data/outfile_400b.txt' )
+
+    diction = data.as_dict( 'k' )
+
 class ScriptRun:
     def __init__( self, seed = None,
                   input_size = None, batch_size = None,
@@ -50,8 +54,8 @@ class ScriptRun:
         return not( None in self.__dict__.values() )
         
 class ScriptRunCollection:
-    def __init__( self ):
-        self.script_runs = list()
+    def __init__( self, runs = list() ):
+        self.script_runs = runs
     def add( self, new_run ):
         self.script_runs.append( new_run )
     def set_hash( self, hash_fn ):
@@ -77,11 +81,16 @@ class ScriptRunCollection:
     def as_dict( self, key_attr ):
         out_dict = {}
         for run in self.script_runs:
-            attr = self.get_attr_single( run, key_attr )
-            if attr not in out_dict:
-                out_dict[ attr ] = list()
-            out_dict[ attr ].append( run )
+            if run.is_complete():
+                attr = self.get_attr_single( run, key_attr )
+                if attr not in out_dict:
+                    out_dict[ attr ] = ScriptRunCollection( runs = list() )
+                out_dict[ attr ].add( run )
         return out_dict
+
+    def apply( self, what, to_what ):
+        items = self.get_attr( to_what )
+        return what( items )
 
 def parse( filename ):
     out_recs = ScriptRunCollection()
