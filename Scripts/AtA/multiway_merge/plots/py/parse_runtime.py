@@ -130,7 +130,7 @@ def parse( filename ):
                     found_pat = time_gpu_only_re.search( line )
                     current.time_gpu_only = float( found_pat.group( 1 ) )
                 elif "Load imbalance: " in line:
-                    current.load_imbalance = float( line.strip().split()[ 2 ] )
+                    current.load_imbalance = abs( float( line.strip().split()[ 2 ] ) )
         return out_recs
         
 if __name__ == '__main__':
