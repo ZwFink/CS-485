@@ -107,6 +107,7 @@ int main( int argc, char **argv )
 
             if( num_cpu_batches > 0 )
                 {
+                    // reminder: batch_indices consists of index of last element for each batch
                     #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
                     for( cpu_index = 0; cpu_index < batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
                         {
@@ -135,7 +136,7 @@ int main( int argc, char **argv )
                     assert( result == cudaSuccess );
 
                     // allocate enough STREAMSPERGPU batches + STREAMSPERGPU maximums, one max for each stream
-                    result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU );
+                    result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU ) );
                     assert( result == cudaSuccess );
 
                     // TODO: Check if this should be + 1
@@ -143,9 +144,85 @@ int main( int argc, char **argv )
 
                     result = cudaMallocHost( &pinned_host, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
                     assert( result == cudaSuccess );
+      
+                    #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, maximums ) private( result, gpu_index )
+                    for( gpu_index = num_cpu_batches; gpu_index < total_num_batches; ++gpu_index )
+                        {
+                            int thread_id = omp_get_thread_num();
+                            int stream_id = thread_id % STREAMSPERGPU;
+                    
+                            // device (start/end) pointers for a stream's batch
+                            uint64_t batch_start_ptr = device_data + ( stream_id * commandline_args.batch_size );                        
+                            uint64_t batch_end_ptr   = device_data + ( stream_id * commandline_args.batch_size ) + commandline_args.batch_size - 1;
 
+                            // copy batch to pinned buffer, then copy batch to device
 
+                            if( gpu_index == 0 )
+                            {
+                                // copy to pinned buffer
+                                std::memcpy( pinned_host + ( stream_id * commandline_args.batch_size ),
+                                             input,
+                                             commandline_args.batch_size * sizeof( uint64_t )
+                                           ); 
 
+                                // copy to device
+                                result = cudaMemcpyAsync( device_data + ( stream_id * commandline_args.batch_size ),
+                                                          pinned_host,
+                                                          commandline_args.batch_size * sizeof( uint64_t ),
+                                                          cudaMemcpyHostToDevice,
+                                                          streams[ stream_id ]
+                                                        );
+                            }
+                        
+                            else
+                            {
+                                // copy to pinned buffer
+                                std::memcpy( pinned_host + ( stream_id * commandline_args.batch_size ),
+                                             input + ( batch_indices[ gpu_index - 1 ] + 1 ),
+                                             commandline_args.batch_size * sizeof( uint64_t )
+                                           );
+
+                                // copy to device
+                                result = cudaMemcpyAsync( device_data + ( stream_id * commandline_args.batch_size ),
+                                                          pinned_host + batch_indices[ gpu_index - 1 ] + 1,
+                                                          commandline_args.batch_size * sizeof( uint64_t ),
+                                                          cudaMemcpyHostToDevice,
+                                                          streams[ stream_id ]
+                                                        );
+                            }
+
+                            // synchronize and handle any errors 
+                            cudaStreamSynchronize( streams[ stream_id ] );
+                            assert( result == cudaSuccess );                        
+
+                            // now, find the max element for my batch
+                            thrust::device_vector< uint64_t > dev_vector( batch_start_ptr, batch_end_ptr );
+                            thrust::device_vector< uint64_t >::iterator iter = thrust::max_element( dev_vector.begin(), dev_vector.end() );
+                            *( device_maximums + stream_id ) = *iter;
+
+           
+                            // copy my max to pinned buffer 
+                            result = cudaMemcpyAsync( pinned_host + ( stream_id * commandline_arg.batch_size ),
+                                                      device_maximums + stream_id,
+                                                      sizeof( uint64_t ),
+                                                      cudaMemcpyDeviceToHost,
+                                                      streams[ stream_id ]
+                                                    );
+
+                            // synchronize and handle any errors
+                            cudaStreamSynchronize( stream );
+                            assert( result == cudaSuccess );
+                                                                                           
+                            // copy my max elmnt to result maximums array if I have a larger maximum elmnt
+                            if( *( maximums + stream_id ) < *( pinned_host + ( stream_id + commandline_args.batchsize ) ) )
+                            {
+                                std::memcpy( maximums + stream_id,
+                                             pinned_host + ( stream_id + commandline_arg.batch_size ),
+                                             sizeof( uint64_t )
+                                           );
+                            }
+
+                        }
 
                 }
         }
