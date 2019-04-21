@@ -93,6 +93,9 @@ int main( int argc, char **argv )
     // 0'th item is maximum for CPU, each consecutive is for the maximum for each stream
     uint64_t maximums[ STREAMSPERGPU + 1 ] = { 0 };
     uint64_t global_max = 0;
+
+    uint64_t *device_data     = nullptr;
+    uint64_t *pinned_host     = nullptr;
     #pragma omp parallel sections
     {
 
@@ -123,6 +126,26 @@ int main( int argc, char **argv )
         {
             if( num_gpu_batches > 0 )
                 {
+                    cudaError_t result = cudaSuccess;
+                    cudaStream_t streams[ STREAMSPERGPU ];
+                    uint64_t batch_size = commandline_args.batch_size;
+                    uint64_t *device_maximums = nullptr;
+
+                    result = create_streams( streams, STREAMSPERGPU );
+                    assert( result == cudaSuccess );
+
+                    // allocate enough STREAMSPERGPU batches + STREAMSPERGPU maximums, one max for each stream
+                    result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU );
+                    assert( result == cudaSuccess );
+
+                    // TODO: Check if this should be + 1
+                    device_maximums = device_data + ( batch_size * STREAMSPERGPU );
+
+                    result = cudaMallocHost( &pinned_host, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
+                    assert( result == cudaSuccess );
+
+
+
 
                 }
         }
@@ -142,5 +165,8 @@ int main( int argc, char **argv )
     printf( "CPU only time: %f\n", get_elapsed( &cpu_only ) );
 
     free( data );
+    cudaFree( device_data );
+    cudaFreeHost( pinned_host );
+
     return EXIT_SUCCESS;
 }
