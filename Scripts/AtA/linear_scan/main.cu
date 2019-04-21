@@ -108,6 +108,7 @@ int main( int argc, char **argv )
             if( num_cpu_batches > 0 )
                 {
                     // reminder: batch_indices consists of index of last element for each batch
+                    // per reminder, I think we want " <= batch_indices[ num_cpu_batches - 1 ];"
                     #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
                     for( cpu_index = 0; cpu_index < batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
                         {
