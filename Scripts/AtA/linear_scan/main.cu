@@ -174,16 +174,16 @@ int main( int argc, char **argv )
                                 if( gpu_index == 0 )
                                 {
                                     // copy to pinned buffer
-                                    std::memcpy( pinned_host + ( index * size_to_transfer ),
+                                    std::memcpy( pinned_host,
                                                  data + ( index * size_to_transfer ),
                                                  size_to_transfer * sizeof( uint64_t )
-                                             ); 
+                                               ); 
                                 }
                             
                                 else
                                 {
                                     // copy to pinned buffer
-                                    std::memcpy( pinned_host + ( index * size_to_transfer ),
+                                    std::memcpy( pinned_host,
                                                  data + ( batch_indices[ gpu_index - 1 ] + 1 ) + ( index * size_to_transfer ),
                                                  size_to_transfer * sizeof( uint64_t )
                                                );
@@ -191,7 +191,7 @@ int main( int argc, char **argv )
                                 
                                 // copy to device
                                 result = cudaMemcpyAsync( device_data + ( stream_id * batch_size ) + ( index * size_to_transfer ),
-                                                          pinned_host + ( index * size_to_transfer ),
+                                                          pinned_host,
                                                           size_to_transfer * sizeof( uint64_t ),
                                                           cudaMemcpyHostToDevice,
                                                           streams[ stream_id ]
