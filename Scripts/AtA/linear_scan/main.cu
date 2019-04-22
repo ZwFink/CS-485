@@ -107,10 +107,8 @@ int main( int argc, char **argv )
 
             if( num_cpu_batches > 0 )
                 {
-                    // reminder: batch_indices consists of index of last element for each batch
-                    // per reminder, I think we want " <= batch_indices[ num_cpu_batches - 1 ];"
                     #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
-                    for( cpu_index = 0; cpu_index < batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
+                    for( cpu_index = 0; cpu_index <= batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
                         {
                             if( data[ cpu_index ] > my_max )
                                 {
@@ -127,7 +125,6 @@ int main( int argc, char **argv )
         #pragma omp section
         {
             uint64_t gpu_index = 0;
-            uint64_t index     = 0;
 
             if( num_gpu_batches > 0 )
                 {
@@ -138,6 +135,7 @@ int main( int argc, char **argv )
                     uint64_t batch_size = commandline_args.batch_size;
                     uint64_t pinned_buffer_size = PINNEDBUFFER * STREAMSPERGPU;
                     uint64_t left_to_copy = batch_size;                    
+                    uint64_t transferred_so_far = 0;
 
                     result = create_streams( streams, STREAMSPERGPU );
                     assert( result == cudaSuccess );
@@ -171,41 +169,27 @@ int main( int argc, char **argv )
 
                             while( left_to_copy > 0 )
                             { 
-                                if( gpu_index == 0 )
-                                {
-                                    // copy to pinned buffer
-                                    std::memcpy( pinned_host + ( stream_id * batch_size ),
-                                                 data ( index * size_to_transfer ),
-                                                 size_to_transfer * sizeof( uint64_t )
-                                               ); 
-                                }
-                            
-                                else
-                                {
-                                    // copy to pinned buffer
-                                    std::memcpy( pinned_host + ( stream_id * batch_size ),
-                                                 data + ( batch_indices[ gpu_index - 1 ] + 1 ) + ( index * size_to_transfer ),
-                                                 size_to_transfer * sizeof( uint64_t )
-                                               );
-                                }
+                                // copy to pinned buffer
+                                std::memcpy( pinned_host + ( stream_id * pinned_buffer_size ),
+                                             data + ( gpu_index * batch_size ) + transferred_so_far,
+                                             size_to_transfer * sizeof( uint64_t )
+                                           ); 
                                 
                                 // copy to device
-                                result = cudaMemcpyAsync( device_data + ( stream_id * batch_size ) + ( index * size_to_transfer ),
-                                                          pinned_host + ( stream_id * batch_size ),
+                                result = cudaMemcpyAsync( device_data + ( stream_id * batch_size ) + transferred_so_far,
+                                                          pinned_host + ( stream_id * pinned_buffer_size ),
                                                           size_to_transfer * sizeof( uint64_t ),
                                                           cudaMemcpyHostToDevice,
                                                           streams[ stream_id ]
                                                         );
-
 
                                 // synchronize and handle any errors 
                                 cudaStreamSynchronize( streams[ stream_id ] );
                                 assert( result == cudaSuccess );                        
                                
                                 left_to_copy -= pinned_buffer_size;
+                                transferred_so_far += size_to_transfer;
                                 size_to_transfer = std::min( pinned_buffer_size, left_to_copy );
-                                index++;
-
                             }
 
                             // now, find the max element for my batch
@@ -215,7 +199,7 @@ int main( int argc, char **argv )
 
            
                             // copy my max to pinned buffer 
-                            result = cudaMemcpyAsync( pinned_host + ( stream_id * batch_size ),
+                            result = cudaMemcpyAsync( pinned_host + ( stream_id * pinned_buffer_size ),
                                                       device_maximums + stream_id,
                                                       sizeof( uint64_t ),
                                                       cudaMemcpyDeviceToHost,
@@ -234,11 +218,9 @@ int main( int argc, char **argv )
                                              sizeof( uint64_t )
                                            );
                             }
-
                         }
-
-                }
-        }
+                    }
+            }        
 
     }
 
