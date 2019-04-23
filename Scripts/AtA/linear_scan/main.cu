@@ -131,6 +131,7 @@ int main( int argc, char **argv )
                     cudaError_t result = cudaSuccess;
                     cudaStream_t streams[ STREAMSPERGPU ];
                     uint64_t *device_maximums = nullptr;
+                    uint64_t iterations_per_thread = num_gpu_batches / STREAMSPERGPU;
 
                     uint64_t batch_size = commandline_args.batch_size;
                     uint64_t pinned_buffer_size = PINNEDBUFFER * STREAMSPERGPU;
@@ -195,27 +196,31 @@ int main( int argc, char **argv )
                             // now, find the max element for my batch
                             thrust::device_vector< uint64_t > dev_vector( batch_start_ptr, batch_end_ptr );
                             thrust::device_vector< uint64_t >::iterator iter = thrust::max_element( dev_vector.begin(), dev_vector.end() );
-                            *( device_maximums + stream_id ) = *iter;
-
-           
-                            // copy my max to pinned buffer 
-                            result = cudaMemcpyAsync( pinned_host + ( stream_id * pinned_buffer_size ),
-                                                      device_maximums + stream_id,
-                                                      sizeof( uint64_t ),
-                                                      cudaMemcpyDeviceToHost,
-                                                      streams[ stream_id ]
-                                                    );
-
-                            // synchronize and handle any errors
-                            cudaStreamSynchronize( streams[ stream_id ] );
-                            assert( result == cudaSuccess );
-                                                                                           
-                            // copy my max elmnt to result maximums array if I have a larger maximum elmnt
-                            if( *( maximums + stream_id ) < *( pinned_host + ( stream_id + batch_size ) ) )
+                            
+                            // Do I have a larger max than my previous max stored?
+                            if( *iter > *( device_maximums + stream_id ) )
                             {
-                                std::memcpy( maximums + stream_id,
-                                             pinned_host + ( stream_id + batch_size ),
-                                             sizeof( uint64_t )
+                                *( device_maximums + stream_id ) = *iter;
+                            }
+
+                            // TODO: Fix this, as it is not correct.
+                            // Am I the last thread executing? Then we have found all maximums, so transfer them
+                            if( num_gpu_batches )
+                            {
+                                result = cudaMemcpyAsync( pinned_host + ( stream_id * pinned_buffer_size ),
+                                                          device_maximums,
+                                                          STREAMSPERGPU * sizeof( uint64_t ),
+                                                          cudaMemcpyDeviceToHost,
+                                                          streams[ stream_id ]
+                                                        );
+
+                                // synchronize and handle any errors
+                                cudaStreamSynchronize( streams[ stream_id ] );
+                                assert( result == cudaSuccess );
+                            
+                                std::memcpy( maximums + 1, // first element is from the CPU
+                                             pinned_host + ( stream_id + pinned_buffer_size ),
+                                             STREAMSPERGPU * sizeof( uint64_t )
                                            );
                             }
                         }
