@@ -151,7 +151,7 @@ int main( int argc, char **argv )
                     result = cudaMallocHost( &pinned_host, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
                     assert( result == cudaSuccess );
       
-                    #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, maximums ) \
+                    #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
                                                                           private( result, gpu_index, index, left_to_copy )
                     for( gpu_index = num_cpu_batches; gpu_index < total_num_batches; ++gpu_index )
                         {
@@ -202,28 +202,24 @@ int main( int argc, char **argv )
                             {
                                 *( device_maximums + stream_id ) = *iter;
                             }
-
-                            // TODO: Fix this, as it is not correct.
-                            // Am I the last thread executing? Then we have found all maximums, so transfer them
-                            if( num_gpu_batches )
-                            {
-                                result = cudaMemcpyAsync( pinned_host + ( stream_id * pinned_buffer_size ),
-                                                          device_maximums,
-                                                          STREAMSPERGPU * sizeof( uint64_t ),
-                                                          cudaMemcpyDeviceToHost,
-                                                          streams[ stream_id ]
-                                                        );
-
-                                // synchronize and handle any errors
-                                cudaStreamSynchronize( streams[ stream_id ] );
-                                assert( result == cudaSuccess );
-                            
-                                std::memcpy( maximums + 1, // first element is from the CPU
-                                             pinned_host + ( stream_id + pinned_buffer_size ),
-                                             STREAMSPERGPU * sizeof( uint64_t )
-                                           );
-                            }
                         }
+
+                        // let stream 0 (default) transfer all maximums over        
+                        result = cudaMemcpyAsync( pinned_host + ( stream_id * pinned_buffer_size ),
+                                                  device_maximums,
+                                                  STREAMSPERGPU * sizeof( uint64_t ),
+                                                  cudaMemcpyDeviceToHost,
+                                                  // stream 0 by default
+                                                );
+
+                        // synchronize and handle any errors
+                        cudaStreamSynchronize( streams[ stream_id ] );
+                        assert( result == cudaSuccess );
+                            
+                        std::memcpy( maximums + 1, // first element is from the CPU
+                                     pinned_host + ( stream_id + pinned_buffer_size ),
+                                     STREAMSPERGPU * sizeof( uint64_t )
+                                   );
                     }
             }        
 
