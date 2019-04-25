@@ -1,25 +1,55 @@
 #!/usr/bin/env python3
 import re
+import matplotlib.pyplot as plt
+import matplotlib
+import numpy as np
+import math
+from matplotlib import rc
+rc('text', **{'usetex':True})
+base_dir = '../'
 
 def five(obj):
     return obj.k
 
 def main():
-    filename = '../gpu_only_out.txt'
 
-    parsed = parse( filename )
-    parsed.set_hash( five )
-    parsed.set_hash( lambda x : hash( getattr( x, 'num_batches' ) ) )
+    input_gpu = base_dir + 'outfile_cpu_frac_0.txt'
+    input_cpu = base_dir + 'outfile_cpu_frac_1.txt'
 
-    for item in parsed.get():
-        print( hash( item ) )
-    print( parsed.get_attr( 'num_batches' ) )
-    # print( parsed.get()[ 0 ].__dict__ )
-    print( parsed.as_dict( 'total_time' ) )
+    gpu_size_dict = parse( input_gpu ).as_dict( 'input_size' )
+    gpu_k_dict = gpu_size_dict[ 4000000000 ].as_dict( 'k' )
 
-    data = parse( '../data/outfile_400b.txt' )
+    cpu_size_dict = parse( input_cpu ).as_dict( 'input_size' )
+    print( cpu_size_dict )
+    cpu_k_dict = cpu_size_dict[ 4000000000 ].as_dict( 'k' )
 
-    diction = data.as_dict( 'k' )
+    cpu_times =  [ cpu_k_dict[ k ].apply( np.mean, 'time_cpu_only' ) for k in cpu_k_dict.keys() ]
+    gpu_times = [ gpu_k_dict[ k ].apply( np.mean, 'time_gpu_only' ) for k in gpu_k_dict.keys() ]
+
+    print( cpu_times )
+    print( gpu_times )
+
+    x = np.arange( 5 )
+    fig = plt.figure( figsize = ( 5, 4 ) )
+    ax = fig.add_subplot( 111 )
+    ax.set_xticks( x )
+    ax.set_xticklabels( [ 2, 4, 8, 16, 32 ] )
+    
+    ax.set_xlabel( 'Number of Sublists ($k$)', fontsize = 20)
+    ax.set_ylabel( 'Time (s)', fontsize = 20)
+    ax.set_ylim( 1, 10 )
+    lab1 = ax.plot( x, gpu_times, ls = 'dashed', c = 'black', marker = 's', 
+                    markersize = 7, linewidth = 2, label = "$T^{GPU}$")
+    lab2 = ax.plot( x, cpu_times, ls = 'dotted', c = 'black', marker = 'd',
+                    markersize = 7, linewidth = 2, label = "$T^{CPU}$")
+
+    lns = lab1 + lab2
+    labs = [ l.get_label() for l in lns ]
+    l = ax.legend( lns, labs, fontsize = 15, loc = 'upper left', fancybox = False, framealpha = 1,
+                   handlelength = 2.5, ncol = 1)
+
+    plt.tight_layout()
+    fig.savefig( 'multiway_merge_cpu_vs_gpu_times_k_3.pdf', bbox_inches = 'tight' )
 
 class ScriptRun:
     def __init__( self, seed = None,
@@ -58,9 +88,11 @@ class ScriptRunCollection:
         self.script_runs = runs
     def add( self, new_run ):
         self.script_runs.append( new_run )
+
     def set_hash( self, hash_fn ):
         for run in self.script_runs:
             run.self_hash = hash_fn
+
     def get( self ):
         out_list = list()
         for item in self.script_runs:
@@ -86,6 +118,9 @@ class ScriptRunCollection:
                 if attr not in out_dict:
                     out_dict[ attr ] = ScriptRunCollection( runs = list() )
                 out_dict[ attr ].add( run )
+            else:
+                print( run.__dict__ )
+                    
         return out_dict
 
     def apply( self, what, to_what ):
@@ -93,11 +128,11 @@ class ScriptRunCollection:
         return what( items )
 
 def parse( filename ):
-    out_recs = ScriptRunCollection()
+    out_recs = ScriptRunCollection( runs = list() )
     num_batch_re     = re.compile( 'Number of CPU batches: (\d+), Number of GPU batches: (\d+)' )
     time_total       = re.compile( "Time CPU and GPU \(total time\): (\d+\.\d+)" )
-    time_cpu_only_re = re.compile( "Time CPU Only: (\d+\.\d+)" )
-    time_gpu_only_re = re.compile( "Time GPU Only: (\d+\.\d+)" )
+    time_cpu_only_re = re.compile( "Time CPU Only: [+-]?(\d+\.\d+)" )
+    time_gpu_only_re = re.compile( "Time GPU Only: [+-]?(\d+\.\d+)" )
 
     with open( filename, 'r' ) as open_file:
         for line in open_file:
@@ -128,7 +163,7 @@ def parse( filename ):
                     current.time_cpu_only = float( found_pat.group( 1 ) )
                 elif time_gpu_only_re.search( line ):
                     found_pat = time_gpu_only_re.search( line )
-                    current.time_gpu_only = float( found_pat.group( 1 ) )
+                    current.time_gpu_only = abs( float( found_pat.group( 1 ) ) )
                 elif "Load imbalance: " in line:
                     current.load_imbalance = abs( float( line.strip().split()[ 2 ] ) )
         return out_recs
