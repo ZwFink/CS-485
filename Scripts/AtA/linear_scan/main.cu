@@ -236,9 +236,12 @@ int main( int argc, char **argv )
                                      STREAMSPERGPU * sizeof( uint64_t )
                                    );
                     }
+            gpu_only.end = omp_get_wtime();
             }        
 
     }
+
+    total_time.end = omp_get_wtime();
 
     uint64_t max_index = 0;
     for( max_index = 0; max_index < STREAMSPERGPU + 1; ++max_index )
@@ -250,7 +253,10 @@ int main( int argc, char **argv )
         }
         
     printf( "Max: %lu\n", global_max );
-    printf( "CPU only time: %f\n", get_elapsed( &cpu_only ) );
+    printf( "CPU only time:  %f\n", get_elapsed( &cpu_only ) );
+    printf( "GPU only time:  %f\n", get_elapsed( &gpu_only ) );
+    printf( "Total time:     %f\n", get_elapsed( &total_time ) );
+    printf( "Load imbalance: %f\n", abs( get_elapsed( &cpu_only ) - get_elapsed( &gpu_only ) ) / get_elapsed( &total_time ) );
 
     free( data );
     cudaFree( device_data );
