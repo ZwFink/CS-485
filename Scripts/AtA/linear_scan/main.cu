@@ -135,12 +135,14 @@ int main( int argc, char **argv )
 
                     uint64_t batch_size = commandline_args.batch_size;
                     uint64_t transferred_so_far = 0;
+                    const uint64_t total_blocks = ceil( batch_size * 1.0 / 1024.0 );
+                    uint64_t *dev_batch_size = nullptr;
 
                     result = create_streams( streams, STREAMSPERGPU );
                     assert( result == cudaSuccess );
 
-                    // allocate enough STREAMSPERGPU batches + STREAMSPERGPU maximums, one max for each stream
-                    result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU ) );
+                    // allocate enough STREAMSPERGPU batches + STREAMSPERGPU maximums, one max for each stream + one element to store batch_size
+                    result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU + 1 ) );
                     assert( result == cudaSuccess );
 
                     // TODO: Check if this should be + 1
@@ -148,8 +150,24 @@ int main( int argc, char **argv )
 
                     result = cudaMallocHost( &pinned_host, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
                     assert( result == cudaSuccess );
+
+                    // copy the batch size to device
+                    std::memcpy( pinned_host, &batch_size, sizeof( uint64_t ) );
+                    result = cudaMemcpyAsync( device_data + ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU,
+                                              pinned_host,
+                                              sizeof( uint64_t ),
+                                              cudaMemcpyHostToDevice,
+                                              streams[ 0 ]
+                                              );
+
+                    // synchronize and handle any errors 
+                    cudaStreamSynchronize( streams[ 0 ] );
+                    assert( result == cudaSuccess );                        
+
+                    dev_batch_size = device_data + ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU;
+                               
       
-                    #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
+                        #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
                         private( result, gpu_index, transferred_so_far )
                     for( gpu_index = num_cpu_batches; gpu_index < total_num_batches; ++gpu_index )
                         {
@@ -195,14 +213,9 @@ int main( int argc, char **argv )
                             }
 
                             // now, find the max element for my batch
-                            thrust::device_vector< uint64_t > dev_vector( batch_start_ptr, batch_end_ptr );
-                            thrust::device_vector< uint64_t >::iterator iter = thrust::max_element( dev_vector.begin(), dev_vector.end() );
-                            
-                            // Do I have a larger max than my previous max stored?
-                            if( *iter > *( device_maximums + stream_id ) )
-                            {
-                                *( device_maximums + stream_id ) = *iter;
-                            }
+                            kernel_max<<<total_blocks, 1024, 0, streams[ stream_id ]>>>( (unsigned long long int*) device_data + ( stream_id * batch_size ),
+                                                                                         (unsigned long long int*) device_maximums + stream_id, (unsigned long long int*) dev_batch_size
+                                                                                       );
                         }
 
                         // let stream 0 (default) transfer all maximums over        
