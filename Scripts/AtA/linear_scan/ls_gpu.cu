@@ -81,4 +81,25 @@ cudaError_t create_streams( cudaStream_t *streams, const int num_streams )
 }
 
 
+__global__ void kernel_max( unsigned long long int *data, unsigned long long int *max_location, unsigned long long int *batch_size )
+{
+    unsigned int tid = threadIdx.x + ( blockIdx.x * blockDim.x );
+    unsigned long long int batch_s = *batch_size;
 
+    if( tid >= ( batch_s / 10 ) )
+        {
+            return;
+        }
+
+    unsigned long long int my_biggest = 0;
+    unsigned long long int index      = 0;
+
+    #pragma unroll
+    for( index = tid * 10; index < tid * 10 + 10; index++ )
+        {
+            my_biggest = max( my_biggest, data[ index ] );
+        }
+    atomicMax( max_location, my_biggest );
+
+    return;
+}
