@@ -134,8 +134,6 @@ int main( int argc, char **argv )
                     uint64_t iterations_per_thread = num_gpu_batches / STREAMSPERGPU;
 
                     uint64_t batch_size = commandline_args.batch_size;
-                    uint64_t pinned_buffer_size = PINNEDBUFFER * STREAMSPERGPU;
-                    uint64_t left_to_copy = batch_size;                    
                     uint64_t transferred_so_far = 0;
 
                     result = create_streams( streams, STREAMSPERGPU );
@@ -152,11 +150,12 @@ int main( int argc, char **argv )
                     assert( result == cudaSuccess );
       
                     #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
-                                                                          private( result, gpu_index, left_to_copy )
+                        private( result, gpu_index, transferred_so_far )
                     for( gpu_index = num_cpu_batches; gpu_index < total_num_batches; ++gpu_index )
                         {
                             int thread_id = omp_get_thread_num();
                             int stream_id = thread_id;
+                            uint64_t left_to_copy = batch_size;                    
                     
                             // device (start/end) pointers for a stream's batch
                             uint64_t *batch_start_ptr = device_data + ( stream_id * batch_size );                        
@@ -165,20 +164,23 @@ int main( int argc, char **argv )
                             // copy batch to pinned buffer in pinned_buffer_size chunks
                             // note: batch size may exceed size of pinned buffer, i.e., when N >= 3 x 10^9
                             
-                            // left_to_copy initially starting at batch_size
-                            uint64_t size_to_transfer = std::min( pinned_buffer_size, left_to_copy );
+                            uint64_t size_to_transfer = 0;
+                            transferred_so_far  = 0;
 
                             while( left_to_copy > 0 )
                             { 
+                                // left_to_copy initially starting at batch_size
+                                size_to_transfer = std::min( (uint64_t) PINNEDBUFFER, left_to_copy );
+
                                 // copy to pinned buffer
-                                std::memcpy( pinned_host + ( stream_id * pinned_buffer_size ),
+                                std::memcpy( pinned_host + ( stream_id * PINNEDBUFFER ),
                                              data + ( gpu_index * batch_size ) + transferred_so_far,
                                              size_to_transfer * sizeof( uint64_t )
                                            ); 
                                 
                                 // copy to device
                                 result = cudaMemcpyAsync( device_data + ( stream_id * batch_size ) + transferred_so_far,
-                                                          pinned_host + ( stream_id * pinned_buffer_size ),
+                                                          pinned_host + ( stream_id * PINNEDBUFFER ),
                                                           size_to_transfer * sizeof( uint64_t ),
                                                           cudaMemcpyHostToDevice,
                                                           streams[ stream_id ]
@@ -188,9 +190,8 @@ int main( int argc, char **argv )
                                 cudaStreamSynchronize( streams[ stream_id ] );
                                 assert( result == cudaSuccess );                        
                                
-                                left_to_copy -= pinned_buffer_size;
+                                left_to_copy -= size_to_transfer;
                                 transferred_so_far += size_to_transfer;
-                                size_to_transfer = std::min( pinned_buffer_size, left_to_copy );
                             }
 
                             // now, find the max element for my batch
