@@ -57,9 +57,6 @@ int main( int argc, char **argv )
     time_data gpu_only;
     time_data total_time;
 
-    std::vector<uint64_t> batch_indices;
-    batch_indices.reserve( total_num_batches );
-
 	////////////////
 	//Turn on gpu
 	printf("\nTurning on the GPU...\n");
@@ -105,7 +102,7 @@ int main( int argc, char **argv )
 
             if( num_cpu_batches > 0 )
                 {
-                    #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
+                    #pragma omp parallel for private( cpu_index ) reduction( max:my_max ) 
                     for( cpu_index = 0; cpu_index < commandline_args.batch_size * num_cpu_batches; ++cpu_index )
                         {
                             if( data[ cpu_index ] > my_max )
@@ -201,12 +198,13 @@ int main( int argc, char **argv )
                                                           streams[ stream_id ]
                                                         );
 
+                               
+                                left_to_copy       -= size_to_transfer;
+                                transferred_so_far += size_to_transfer;
+
                                 // synchronize and handle any errors 
                                 cudaStreamSynchronize( streams[ stream_id ] );
                                 assert( result == cudaSuccess );                        
-                               
-                                left_to_copy -= size_to_transfer;
-                                transferred_so_far += size_to_transfer;
                             }
 
                             // now, find the max element for my batch
