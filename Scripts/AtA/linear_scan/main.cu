@@ -88,8 +88,6 @@ int main( int argc, char **argv )
     gpu_only.start   = omp_get_wtime();
     total_time.start = omp_get_wtime();
 
-    compute_batches( &batch_indices, commandline_args.N, commandline_args.batch_size );
-
     // 0'th item is maximum for CPU, each consecutive is for the maximum for each stream
     uint64_t maximums[ STREAMSPERGPU + 1 ] = { 0 };
     uint64_t global_max = 0;
@@ -108,7 +106,7 @@ int main( int argc, char **argv )
             if( num_cpu_batches > 0 )
                 {
                     #pragma omp parallel for private( cpu_index ) reduction( max:my_max )
-                    for( cpu_index = 0; cpu_index <= batch_indices[ num_cpu_batches - 1 ]; ++cpu_index )
+                    for( cpu_index = 0; cpu_index < commandline_args.batch_size * num_cpu_batches; ++cpu_index )
                         {
                             if( data[ cpu_index ] > my_max )
                                 {
@@ -145,7 +143,6 @@ int main( int argc, char **argv )
                     result = cudaMalloc( &device_data, sizeof( uint64_t ) * ( ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU + 1 ) );
                     assert( result == cudaSuccess );
 
-                    // TODO: Check if this should be + 1
                     device_maximums = device_data + ( batch_size * STREAMSPERGPU );
 
                     result = cudaMallocHost( &pinned_host, sizeof( uint64_t ) * PINNEDBUFFER * STREAMSPERGPU );
@@ -167,8 +164,8 @@ int main( int argc, char **argv )
                     dev_batch_size = device_data + ( batch_size * STREAMSPERGPU ) + STREAMSPERGPU;
                                
       
-                        #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
-                        private( result, gpu_index, transferred_so_far )
+                    #pragma omp parallel for num_threads( STREAMSPERGPU ) shared( pinned_host, device_data, streams, device_maximums ) \
+                                             private( result, gpu_index, transferred_so_far )
                     for( gpu_index = num_cpu_batches; gpu_index < total_num_batches; ++gpu_index )
                         {
                             int thread_id = omp_get_thread_num();
