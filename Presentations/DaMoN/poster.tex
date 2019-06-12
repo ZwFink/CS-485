@@ -133,11 +133,9 @@
 
 \begin{column}{\colwidth}
 
-  \begin{block}{Description of Three Algorithms}
+  \begin{block}{Hybrid Algorithms}
 
-   %We use the notation in Table~\ref{tab:notation} when describing our algorithms. 
-
-
+   We use the notation in Table~\ref{tab:notation} when describing our algorithms. 
    \begin{table}[htp]
    \centering
    \begin{footnotesize}
@@ -155,6 +153,28 @@
    \end{tabularx}
    \end{footnotesize}
    \end{table}
+
+
+   \heading{Batched Predecessor Search}
+   
+   We outline the batched predecessor search as follows. Let $A$ be a set of keys sorted in non-decreasing order,  
+   where each key is denoted as $a_i$, where $i=1, 2,\ldots,n$, and $B$ be a set of queries sorted in non-decreasing order, 
+   where each query is denoted as $b_j$, where $j=1, 2,\ldots,n$. For each query, $b_j\in B$, the batched predecessor search 
+   finds the largest value of $i$, such that $a_i\leq b_j$. While $A$ and $B$ can vary in size, for simplicity, we assume $|A|=|B|=n$.
+
+   \heading{Multiway Merging}
+
+   We define the problem of \emph{multiway merging} as follows.  Given input array $A$ consisting of $k$ sublists, denoted as $S_j$, 
+   where $j=1, 2,\ldots,k$, each of size  $\frac{n}{k}$ and sorted in non-decreasing order, we wish to output the $n$ total elements 
+   in sorted order. Furthermore, we assume that $k$ is small enough that we can load elements 
+   from each sublist into memory without degrading CPU cache utilization.
+
+   \heading{Partitioning}
+
+We consider the problem of \emph{$k$-way partitioning} (or simply partitioning).  Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ buckets $A_1, A_2, \ldots, A_k$ of roughly equal size such that each bucket is value-disjoint.  That is, for any two elements $a \in A_i$ and $b \in A_j$, if $i < j$, then $a<b$.  This problem is also known as \emph{distribution} and is a subroutine of many algorithms, including distribution sort (also known as multiway quicksort).  In the RAM and EM models, the lower bounds for partitioning $n$ elements into $k$ buckets is $O(n \log{k})$ and $O(\frac{n}{B}\log_{M/B}{k})$, respectively.  The external memory bound can be achieved by repeatedly partitioning $n$ into $\frac{M}{B}$ buckets (which can be done in a single I/O-efficient scan).  
+We note that if $k=n$, partitioning is equivalent to sorting. 
+
+Partitioning involves $(i)$ finding pivots for each bucket ($k$ total); $(ii)$ determining which bucket each element is in; and, $(iii)$ moving each element into contiguous memory with other elements in the same bucket.  Since we focus on the memory-bound ``bucketing'' portion of the problem, we assume that the pivots are given and no more than a constant factor more than $\frac{n}{k}$ elements will end up in any bucket.
 
 
   \end{block}
