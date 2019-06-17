@@ -53,7 +53,7 @@
 \setbeamerfont{headline title}{size=\Huge,series=\bfseries}
 \setbeamerfont{headline author}{size=\Large}
 \setbeamerfont{headline institute}{size=\normalsize}
-\setbeamerfont{block title}{family=\Raleway,size=\large,series=\bfseries}
+\setbeamerfont{block title}{family=\Raleway,size=\Large,series=\bfseries}
 \setbeamerfont{heading}{family=\Lato,series=\bfseries}
 \setbeamerfont{caption}{size=\small}
 
@@ -70,9 +70,9 @@
 % List
 \makeatletter
 \def\@listi{\leftmargin\leftmarginii
-\topsep 1ex % spacing before
+\topsep 0.3ex % spacing before
 \parsep 0\p@ \@plus\p@
-\itemsep 0.5ex} % spacing between
+\itemsep 0.3ex} % spacing between
 \makeatother
 
 % Itemize
@@ -88,13 +88,13 @@
 \setbeamertemplate{enumerate subsubitem}{\insertsubsubenumlabel.}
 
 % Equation
-\setlength\belowdisplayshortskip{2ex}
+\setlength\belowdisplayshortskip{1ex}
 
 % Caption
 \setbeamertemplate{caption}[numbered]
 \setbeamertemplate{caption label separator}[period]
-\setlength{\abovecaptionskip}{2ex}
-\setlength{\belowcaptionskip}{1ex}
+\setlength{\abovecaptionskip}{1.05ex}
+\setlength{\belowcaptionskip}{0.05ex}
 
 % Bibliography
 \setbeamertemplate{bibliography item}[text]
@@ -135,7 +135,7 @@
         \hskip7cm
       \end{column}
     \end{columns}
-    \vspace{5ex}
+    \vspace{1ex}
     \ifbeamercolorempty[bg]{headline rule}{}{
       \begin{beamercolorbox}[wd=\paperwidth,colsep=0.5ex]{headline rule}\end{beamercolorbox}
     }
@@ -145,7 +145,7 @@
 % Block
 \setbeamertemplate{block begin}
 {
-  \begin{beamercolorbox}[colsep*=0ex,dp=2ex,center]{block title}
+  \begin{beamercolorbox}[colsep*=0ex,dp=0.2ex,center]{block title}
     \vskip0pt
     \usebeamerfont{block title}\insertblocktitle
     \vskip-1.25ex
@@ -156,14 +156,14 @@
   \vskip-0.5ex
   \begin{beamercolorbox}[colsep*=0ex]{block body}
   \justifying
-  \setlength{\parskip}{1ex}
+  \setlength{\parskip}{0.15ex}
   \vskip-2ex
 }
 \setbeamertemplate{block end}
 {
   \end{beamercolorbox}
   \vskip0pt
-  \vspace*{2ex}
+  \vspace*{0.125ex}
 }
 
 % Alert Block
