@@ -26,6 +26,5 @@ clean:
 poster.pdf: poster.tex poster.bib $(DEPS)
 	$(eval SRC_$@ = $(patsubst %.tex, %, $<))
 	$(LATEX) $(SRC_$@)
-	$(BIBTEX) $(SRC_$@)
 	$(LATEX) $(SRC_$@)
 	$(LATEX) $(SRC_$@)
