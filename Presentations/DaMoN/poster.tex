@@ -54,8 +54,8 @@
 
 \author{Michael Gowanlock\inst{1}, Ben Karsin\inst{2}, Zane Fink\inst{1}, and Jordan Wright\inst{1}}
 
-\institute[shortinst]{\inst{1} School of Informatics, Computing, and Cyber Systems at Northern Arizona University}
 \institute[shortinst]{\inst{2} Department of Computer Science at Universite libre de Bruxelles}
+\institute[shortinst]{\inst{1} School of Informatics, Computing, and Cyber Systems at Northern Arizona University}
 
 % ====================
 % Body
@@ -107,6 +107,10 @@
 
   \end{block}
 
+
+
+
+
   \begin{alertblock}{Problem Statement}
 
    For each of our database primitives we implement CPU-only, GPU-only, and hybrid CPU/GPU algorithms. 
@@ -125,31 +129,7 @@
 
  \begin{block}{Hybrid Algorithms}
 
-   % \begin{table}[htp]
-   % 
-   % \centering
-   % \begin{footnotesize}
-   % \caption{Summary of algorithms considered in this paper, total elements loaded/stored from main memory, 
-   %          and asymptotic time complexity in the RAM model.  We omit small additive terms for loads/stores and, 
-   %          for the GPU, we compute it as the maximum unidirectional data transferred, since we overlap data transfers.  
-   %          The parameter $\mu$ depends on the hardware which is optimized experimentally.} 
-   % \label{tab:algorithms}
-   % \begin{tabularx}{\columnwidth}{|l|l|X|X|} \hline
-   % Algorithm& Arch. & Elements accessed in memory & RAM Complexity \\ \hline
-   % Batched Pred. Search & CPU& $3n$ & $O(n)$ \\
-   % \hline
-   % Batched Pred. Search & GPU& $2n$ & $O(n\log{n})$ \\\hline
-   % Multiway Merge & CPU& $2n$ & $O(n\log{k})$ \\\hline
-   % Multiway Merge & GPU& $n$ & $O(n\log{k})$ \\\hline
-   % $k$-way Partition               & CPU& $2n\lceil\log_{\mu}{k}\rceil$ & $O(n\log{k})$ \\\hline
-   % $k$-way Partition               & GPU& $n$ & $O((n+n_bk) \log{\frac{n}{n_b}})$ \\
-   % \hline
-   % \end{tabularx}
-   % \end{footnotesize}
-
-   %  \end{table}
-
-\begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
+ \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
 \item The three algorithms that we consider are parallelizable across architectures while minimizing memory accesses. We accomplish this by breaking up the total work into several \emph{batches} of divisible workloads that can be computed independently on either architecture. 
 
 \item We define $n_b$ to be the number of batches. For batched predecessor search and partitioning, we arbitrarily select $n_b=400$, while for multiway merge, we make $n_b$ a function of $k$ to ensure data transfers are sufficiently large to mitigate overheads.
@@ -208,10 +188,20 @@ Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ 
 \subfigure[Partitioning, model: $f=0.31$.]{
 \includegraphics[height=0.20\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_partition.pdf}
 }
- \caption{Hybrid model accuracy for all algorithms. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$. In (b) we use $k=8$ for multiway merging, and in (c) we perform partitioning with $k=1024$ and $\mu=32$.}
+% \caption{Hybrid model accuracy for all algorithms. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$. In (b) we use $k=8$ for multiway merging, and in (c) we perform partitioning with $k=1024$ and $\mu=32$.}
 
-   \label{fig:time_vs_f}
+ \label{fig:time_vs_f}
 \end{figure}
+
+
+
+\begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
+\item  Figure 2(a) shows that even if the model can predict a good value for $f$, small differences in $f$ can yield significant load imbalance for the batched predecessor search. 
+\item Figure 2(b) demonstrates that the optimal value of $f$ for multiway merging is almost exactly the value predicted by our model.
+\item  Figure2(c) indicates that the model prediction is quite accurate, with the best performance achieved when $f=0.35$ being only slightly faster than the predicted value of 0.3.
+\end{description}
+
+
 
 
 %trim={0.2cm 0.2cm 0.2cm 0.2cm}
@@ -220,10 +210,16 @@ Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ 
 \subfigure[]{
     \includegraphics[width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_predecessor.pdf}	
 }
+%\subfigure[]{
+%\includegraphics[width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_predecessor.pdf}	
+%}
 \subfigure[]{
-\includegraphics[width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_predecessor.pdf}	
+    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_multiway.pdf}	
 }
-    \caption{(a) Response time vs. input size ($n$) comparing CPU-only, GPU-only, and hybrid batched predecessor search algorithms, where the total memory footprint, $3n$, is plotted in GiB on the top horizontal axis. (b) The load imbalance of the hybrid algorithm in (a).}
+\subfigure[]{
+    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_partition.pdf}	
+}
+    \caption{(a), (b), and (c) Response time vs. input size ($n$) comparing CPU-only, GPU-only, and hybrid batched predecessor, multiway merging, and partitioning algorithms, respectively.}
    \label{fig:predecessor_search_results}
 \end{figure}
  
@@ -232,30 +228,65 @@ Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ 
 \begin{figure}[htp]
 \centering
 \subfigure[]{
-    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_multiway.pdf}	
+\includegraphics[width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_predecessor.pdf}	
 }
 \subfigure[]{
-\includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_multiway.pdf}	
+    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_multiway.pdf}	
 }
-    \caption{(a) Response time vs. input size ($n$) when $k=8$, comparing CPU-only, GPU-only, and hybrid multiway merge algorithms, where the total memory footprint, $2n$, is plotted in GiB on the top horizontal axis. (b) The load imbalance of the hybrid algorithm in (a).}
+\subfigure[]{
+\includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_partition.pdf}	
+}
+% \subfigure[]{
+% \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_multiway.pdf}	
+% }
+    \caption{(a), (b), and (c) The load imbalance of the hybrid algorithms in Figure~\ref{fig:predecessor_search_results}(a), (b), and (c), respectively. }
    \label{fig:multiway_merge_results}
 \end{figure}
 
  
    
-   \begin{figure}[htp]
-\centering
-\subfigure[]{
-    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_partition.pdf}	
-}
-\subfigure[]{
-\includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_partition.pdf}	
-}
-\caption{(a) Response time vs. input size ($n$) comparing CPU-only, GPU-only, and hybrid partitioning algorithms for $k=1024$ buckets, where the total memory footprint, $3n$, is plotted in GiB on the top horizontal axis. (b) The load imbalance of the hybrid algorithm in (a).}
-   \label{fig:partitioning-results}
-\end{figure}
+%   \begin{figure}[htp]
+%\centering
+%\subfigure[]{
+%    \includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_partition.pdf}	
+%}
+%\subfigure[]{
+%\includegraphics[height=0.20\textwidth, width=0.31\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_partition.pdf}	
+%}
+%\caption{(a) Response time vs. input size ($n$) comparing CPU-only, GPU-only, and hybrid partitioning algorithms for $k=1024$ buckets, where the total memory footprint, $3n$, is plotted in GiB on the top horizontal axis. (b) The load imbalance of the hybrid algorithm in (a).}
+%   \label{fig:partitioning-results}
+%\end{figure}
+
+
 
 \end{block} 
+
+
+
+
+
+
+\begin{block}{Future Work}
+
+
+
+\begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
+
+\item Investigating whether compression schemes or other memory transfer optimizations can alleviate some of the bottlenecks, despite the computational overhead.
+
+\item The study of other fundamental database operations that have not been considered for GPU acceleration.
+
+
+\end{description}
+
+
+
+
+
+
+\end{block}
+
+
 
 \end{column}
 
