@@ -54,12 +54,11 @@
 % Title
 % ====================
 
-\title{Accelerating the Unacceleratable: Hybrid CPU/GPU Algorithms\\ for Memory-Bound Database Primitives}
+\title{New Title}
 
-\author{Michael Gowanlock\inst{1}, Ben Karsin\inst{2}, Zane Fink\inst{1}, and Jordan Wright\inst{1}}
+\author{Jordan Wright \inst{1}, Zane Fink \inst{1}, \and Michael Gowanlock\inst{1}}
 
-\institute[shortinst]{\inst{1} School of Informatics, Computing, and Cyber Systems at Northern Arizona University \and %
-                      \inst{2} Department of Computer Science at Universite libre de Bruxelles }
+\institute[shortinst]{\inst{1} School of Informatics, Computing, and Cyber Systems at Northern Arizona University}
 
 % ====================
 % Body
@@ -124,9 +123,9 @@
 
 \item We define $n_b$ to be the number of batches. For batched predecessor search and partitioning, we arbitrarily select $n_b=400$, while for multiway merge, we make $n_b$ a function of $k$. 
 
-\item Let $\beta$ be the unidirectional bandwidth over PCIe, and $\alpha$ be the memory bandwidth between the CPU and main memory when simultaneously reading and writing. For a given platform, $\beta$ and  $\alpha$ can be obtained through simple microbenchmarks.
+\item Let $\beta$ be the unidirectional bandwidth over PCIe, $\gamma$ be the memory bandwidth between the CPU and main memory when reading, and $\alpha$ be the memory bandwidth between the CPU and main memory when simultaneously reading and writing. For a given platform, $\beta$, $\gamma$, and  $\alpha$ can be obtained through simple microbenchmarks.
 
-\item We obtain $\alpha=19.56$~GiB/s, and $\beta=11$~GiB/s on our platform. 
+\item We obtain $\alpha=19.56$~GiB/s, $\gamma=34.01$~GiB/s, and $\beta=11$~GiB/s on our platform. 
 \end{description} 
 
 \begin{figure}[htp]
@@ -135,6 +134,12 @@
     \includegraphics[height=0.2\textwidth, width=0.30\textwidth, trim={0.5cm 0.5cm 0.5cm 1cm}]{figures/microbenchmarks_time_vs_threads.pdf}	
    \label{fig:mem_bandwidth_scalability}
 \end{figure}
+
+
+\heading{Scan}
+We define scan as follows, and use the $max$ function, which requires reading all $n$ elements in a list to find the maximum value (alternatively,
+we could use a different function, such as $min$, but the complexity is the same).
+Let $A$ be an unordered array of $n$ elements. We wish to find $x \in A$ such that for all $y \in A$, $x \ge y$, i.e. $x = max(A)$.
 
 
 \heading{Batched Predecessor Search}
@@ -150,10 +155,6 @@
    in sorted order. Furthermore, we assume that $k$ is small enough that we can load elements 
    from each sublist into memory without degrading CPU cache utilization.
 
-\heading{Partitioning}
-
-Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ buckets $A_1, A_2, \ldots, A_k$ of roughly equal size such that each bucket is value-disjoint. Partitioning involves $(i)$ finding pivots for each bucket ($k$ total); $(ii)$ determining which bucket each element is in; and, $(iii)$ moving each element into contiguous memory with other elements in the same bucket.  
-
   \end{block}
 
 \end{column}
@@ -166,44 +167,46 @@ Given an unsorted list, $A$, of $n$ elements, we wish to partition $A$ into $k$ 
 \begin{figure}[htp]
 \centering
 \subfigure[]{
+\includegraphics[height=0.25\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_scan.pdf}
+}
+\subfigure[]{
     \includegraphics[height=0.25\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_predecessor.pdf}     
     }
 \subfigure[]{
 \includegraphics[height=0.25\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_multiway.pdf}}
-\subfigure[]{
-\includegraphics[height=0.25\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_partition.pdf}
-}
+
 %\captionsetup[figure]{font=small}
- \caption{Hybrid model accuracy for batched predecessor search, multiway merging and partitioning. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$.}
+ \caption{Hybrid model accuracy for the scan, batched predecessor search, and multiway merging. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$.}
 
  \label{fig:time_vs_f}
 \end{figure}
 
 \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
-\item  Figure 2(a) shows that even if the model can predict a good value for $f$, small differences in $f$ can yield significant load imbalance. 
-\item Figure 2(b) demonstrates that the model accurately predicts $f$ for multiway merging.
-\item  Figure2(c) indicates that the model prediction is quite accurate.
+\item Figure 2(a) demonstrates that the model accurately predicts $f$ for the scan ($f=0.76$).
+\item  Figure2(b) indicates that the model's prediction is quite accurate for multiway merging ($f=0.47$).
+\item  Figure 2(c) shows that even if the model can predict a good value for $f$, small differences in $f$ can yield significant load imbalance ($f=0.35$). 
 \end{description}
 
 %trim={0.2cm 0.2cm 0.2cm 0.2cm}
  \begin{figure}[htp]
 \centering
 \subfigure[]{
-    \includegraphics[height = 0.25\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_predecessor.pdf}	
+    \includegraphics[height = 0.25\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_linear_scan.pdf}	
 }
 \subfigure[]{
     \includegraphics[height=0.25\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_multiway.pdf}	
 }
 \subfigure[]{
-    \includegraphics[height=0.25\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_partition.pdf}	
+    \includegraphics[height=0.25\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_predecessor.pdf}	
 }
-   \caption{CPU-Only, GPU-Only and Hybrid runtimes for the batched predecessor search (a), multiway merging (b) and partitioning (c).}
+   \caption{CPU-Only, GPU-Only and Hybrid runtimes for the scan (a), multiway merging (b), and batched predecessor search (c).}
    \label{fig:predecessor_search_results}
 \end{figure}
 
 \end{block} 
 \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
-\item We find that the hybrid model achieves a speedup over both the CPU-Only and GPU-Only times for each algorithm and value of $n$. 
+\item We find that the hybrid model achieves a speedup over both the CPU-Only and GPU-Only times for the batched predecessor search and multiway merging $n$. 
+\item However, the overheads associated with the hybrid algorithm for the scan result in a slowdown.
 \end{description}
 
 
