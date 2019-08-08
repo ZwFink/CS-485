@@ -58,7 +58,11 @@ class ScriptRun:
                   num_cpu_batches = None, num_gpu_batches = None,
                   total_time = None,
                   time_cpu_only = None, time_gpu_only = None,
-                  load_imbalance = None
+                  load_imbalance = None,
+                  cache_misses  = None,
+                  cache_references = None
+                  #mu = None
+                  #cache_misses = None
                 ):
         self.seed            = seed
         self.input_size      = input_size
@@ -72,6 +76,10 @@ class ScriptRun:
         self.time_cpu_only   = time_cpu_only
         self.time_gpu_only   = time_gpu_only
         self.load_imbalance  = load_imbalance
+        #self.mu = mu
+        #self.cache_misses    = cache_misses
+        #self.cache_references    = cache_references
+        # self.cache_misses    = cache_misses
 
     def self_hash( self ):
         return hash( seed )
@@ -81,7 +89,8 @@ class ScriptRun:
 
     def is_complete( self ):
         # We couldnt' parse all data for a run, maybe it crashed or something
-        return not( None in self.__dict__.values() )
+        return not( None in self.__dict__.values() ) #or not( self.cache_references is None  and \
+                                                     #        self.cache_misses is None )
         
 class ScriptRunCollection:
     def __init__( self, runs = list() ):
@@ -137,10 +146,21 @@ def parse( filename ):
     with open( filename, 'r' ) as open_file:
         for line in open_file:
             if line:
+                #if 'mu\t' in line:
+                #    current = ScriptRun()
+                #    out_recs.add( current )
+
+                #    current.mu = float( line.strip().split( '\t')[ 1 ] )
                 if 'Seed' in line:
                     current = ScriptRun()
                     out_recs.add( current )
                     current.seed = int( line.strip().split()[ 5 ] )
+                elif 'Seed' in line:
+                    #current = ScriptRun()
+                    #out_recs.add( current )
+                    current.seed = int( line.strip().split()[ 5 ] )
+
+
                 elif 'Input size:' in line:
                     current.input_size = int( line.strip().split()[ 2 ] )
                 elif 'Batch size:' in line:
@@ -166,6 +186,12 @@ def parse( filename ):
                     current.time_gpu_only = abs( float( found_pat.group( 1 ) ) )
                 elif "Load imbalance: " in line:
                     current.load_imbalance = abs( float( line.strip().split()[ 2 ] ) )
+                #elif 'cache-references' in line:
+                #    current.cache_references = int( line.strip().split()[ 0 ].replace( ',', '' ) )
+                #elif 'cache-misses' in line:
+                #    current.cache_misses = int( line.strip().split()[ 0 ].replace( ',', '' ) )
+                #elif 'L1 Cache Misses' in line:
+                #    current.cache_misses = int( line.strip().split()[ 3 ] )
         return out_recs
         
 if __name__ == '__main__':
