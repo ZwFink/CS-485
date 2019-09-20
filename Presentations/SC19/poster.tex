@@ -178,7 +178,7 @@ We compute $f$ as a function of the parameters $\gamma$ and $\beta$, and set $T^
 
 
 \heading{Batched Predecessor Search}
-   For the predecessor search, we consider two lists of equal size, $A$ and $B$. For each element of $B$, we wish to find the largest element of $A$
+   For the predecessor search, we consider two sorted lists, $A$ and $B$. For each element of $B$, we wish to find the largest element of $A$
    less than that element of $B$.
    As before, $f$ is computed as,
 \begin{equation}f=\frac{2\alpha}{2\alpha+3\beta}.\label{eqn:batch_predecessor_split}\end{equation}
@@ -190,13 +190,7 @@ Similarly to the scan, $f$ is computed as,
 
   \end{block}
 
-\end{column}
-
-\separatorcolumn
-
-\begin{column}{\colwidth}
-
-  \begin{block}{Research Highlights}
+\begin{block}{Research Highlights}
 \begin{figure}[htp]
 \centering
 \subfigure[]{
@@ -213,6 +207,16 @@ Similarly to the scan, $f$ is computed as,
 
  \label{fig:time_vs_f}
 \end{figure}
+
+\end{block}
+
+\end{column}
+
+\separatorcolumn
+
+\begin{column}{\colwidth}
+
+  \begin{block}{Research Highlights (Cont.)}
 
 %\begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
 %\item Figure 2(a) demonstrates that the model accurately predicts $f$ for the scan ($f=0.76$).
