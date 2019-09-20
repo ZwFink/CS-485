@@ -177,16 +177,16 @@ We compute $f$ as a function of the parameters $\gamma$ and $\beta$, and set $T^
 \begin{equation}f=\frac{\gamma}{\gamma+\beta}.\label{eqn:scan_split}\end{equation}
 
 
+\heading{Multiway Merging}
+The multiway merge merges some number ($k$) of sorted sublists into one large sorted list.
+Similarly to the scan, $f$ is computed as,
+\begin{equation}f=\alpha/(\alpha+2\beta)\label{eqn:multiway_split}.\end{equation}
+
 \heading{Batched Predecessor Search}
    For the predecessor search, we consider two sorted lists, $A$ and $B$. For each element of $B$, we wish to find the largest element of $A$
    less than that element of $B$.
    As before, $f$ is computed as,
 \begin{equation}f=\frac{2\alpha}{2\alpha+3\beta}.\label{eqn:batch_predecessor_split}\end{equation}
-
-\heading{Multiway Merging}
-The multiway merge merges some number ($k$) of sorted sublists into one large sorted list.
-Similarly to the scan, $f$ is computed as,
-\begin{equation}f=\alpha/(\alpha+2\beta)\label{eqn:multiway_split}.\end{equation}
 
   \end{block}
 
@@ -197,13 +197,14 @@ Similarly to the scan, $f$ is computed as,
 \includegraphics[height=0.26\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_scan.pdf}
 }
 \subfigure[]{
+\includegraphics[height=0.26\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_multiway.pdf}}
+\subfigure[]{
     \includegraphics[height=0.26\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_predecessor.pdf}     
     }
-\subfigure[]{
-\includegraphics[height=0.26\textwidth, width=0.3\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/time_vs_cpu_frac_multiway.pdf}}
+
 
 %\captionsetup[figure]{font=small}
- \caption{Hybrid model accuracy for the scan, batched predecessor search, and multiway merging. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$.}
+ \caption{Hybrid model accuracy for the scan, multiway merge, and batched predecessor search. The total response time, $T^{CPU}$, and $T^{GPU}$ vs. $f$, are plotted. We show $n=4.0\times10^9$ for all algorithms. The vertical dashed line in each plot denotes the modeled value of $f$.}
 
  \label{fig:time_vs_f}
 \end{figure}
@@ -237,7 +238,7 @@ Similarly to the scan, $f$ is computed as,
     \includegraphics[height=0.27\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_time_predecessor.pdf}	
 }
    \caption{CPU-Only, GPU-Only and Hybrid runtimes for the scan (a), multiway merging (b), and batched predecessor search (c).}
-   \label{fig:predecessor_search_results}
+   \label{fig:results_time}
 \end{figure}
 
 
@@ -247,19 +248,19 @@ Similarly to the scan, $f$ is computed as,
     \includegraphics[height = 0.27\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_ls.pdf}	
     }
 \subfigure[]{
-\includegraphics[height = 0.27\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_predecessor.pdf}	
-    }
-\subfigure[]{
 \includegraphics[height = 0.27\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_multiway.pdf}	
 }
+\subfigure[]{
+\includegraphics[height = 0.27\textwidth, width=0.30\textwidth, trim={0.2cm 0.2cm 0.2cm 0.2cm}]{figures/size_vs_load_imbalance_predecessor.pdf}	
+    }
     \caption{The load imbalance of the hybrid algorithms in Figure 2.}
    \label{fig:scan_results}
 \end{figure}
 
 \end{block} 
 \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
-\item We find that the hybrid model achieves a speedup over both the CPU-Only and GPU-Only times for the batched predecessor search and multiway merging $n$. 
-\item However, the overheads associated with the hybrid algorithm for the scan result in a slowdown. With emerging technologies such as PCIe v4 the scan may see
+\item We find that the hybrid model achieves a speedup over both the CPU-Only and GPU-Only times for the batched predecessor search and multiway merging $n$. (Figure~\ref{fig:results_time}(b), (c))
+\item However, in Figure~\ref{fig:results_time}(a) we see that the overheads associated with the hybrid algorithm for the scan result in a slowdown. With emerging technologies such as PCIe v4 the scan may see
   a speedup as we can assign more work to the GPU.
 \end{description}
 
