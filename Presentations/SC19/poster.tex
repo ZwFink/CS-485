@@ -263,12 +263,20 @@ Similarly to the scan, $f$ is computed as,
   a speedup as we can assign more work to the GPU.
 \end{description}
 
+\begin{block}{Conclusion}
+
+  \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
+    \item The GPU can be used to achieve significant performance gains for algorithms previously unconsidered for acceleration.
+    \item Performance of memory-bound algorithms can be accurately modeled when ignoring computation and considering only memory accesses. 
+  \end{description}
+
+\end{block}
 
 \begin{block}{Future Work}
 
 \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
-%\item Investigating whether compression schemes or other memory transfer optimizations can alleviate some of the bottlenecks, despite the computational overhead.
-\item The study of other fundamental operations that have not been considered for GPU acceleration.
+\item Investigating whether compression schemes or other memory transfer optimizations can alleviate some of the bottlenecks, despite the computational overhead.
+\item The study of other operations that have not been considered for GPU acceleration.
 \end{description}
 
 \end{block}
