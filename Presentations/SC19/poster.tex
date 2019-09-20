@@ -100,7 +100,7 @@
     
 \begin{description}[font=$\bullet$~\normalfont\scshape\color{red!50!black}]
 
-\item While compute-intensive operations have seen performance gains using GPUs, many supercomputing primitives, which perform many operations in-memory, have not been accelerated. 
+\item While compute-intensive operations have seen performance gains using GPUs, memory-bound algorithms often do not exploit the GPU.
 
 \item One approach to improve the performance of memory-bound algorithms is to develop hybrid parallel algorithms that use both CPU and GPU resources.
 
@@ -165,33 +165,27 @@
 
 \item To model evenly splitting the work between architectures, let $f$ be the fraction of $n$ elements computed on the CPU, where $1-f$ is the fraction of $n$ computed on the GPU.
 
-\item The total time to execute the CPU- and GPU-only algorithms are denoted as $T^{CPU}$ and $T^{GPU}$, respectively, which we estimate to be the number of elements accessed in memory for CPU divided by \gamma, and the number of elements accessed in memory for GPU divided by \beta.
+\item The total time to execute the CPU- and GPU-only algorithms are denoted as $T^{CPU}$ and $T^{GPU}$, respectively,
+  which we estimate to be the number of elements accessed in memory for CPU divided by $\gamma$ for the scan,
+  and $\alpha$ for the merge; and the number of elements accessed in memory for GPU divided by $\beta$.
 
 \end{description}
 
 \heading{Scan}
-We define scan as follows, and use the $max$ function, which requires reading all $n$ elements in a list to find the maximum value (alternatively,
-we could use a different function, such as $min$, but the complexity is the same).
-Let $A$ be an unordered array of $n$ elements. We wish to find $x \in A$ such that for all $y \in A$, $x \ge y$%, i.e. $x = max(A)$.
+The scan algorithm examines every algorithm in a list (e.g. to find the maximum element).
 We compute $f$ as a function of the parameters $\gamma$ and $\beta$, and set $T^{CPU}=T^{GPU}$. Therefore,
 \begin{equation}f=\frac{\gamma}{\gamma+\beta}.\label{eqn:scan_split}\end{equation}
 
 
 \heading{Batched Predecessor Search}
-   Let $A$ be a set of keys sorted in non-decreasing order,  
-   where each key is denoted as $a_i$, where $i=1, 2,\ldots,n$, and $B$ be a set of queries sorted in non-decreasing order, 
-   where each query is denoted as $b_j$, where $j=1, 2,\ldots,n$. For each query, $b_j\in B$, the batched predecessor search 
-   finds the largest value of $i$, such that $a_i\leq b_j$. While $A$ and $B$ can vary in size, for simplicity, we assume $|A|=|B|=n$.
-   Similarly, $f$ is computed as,
+   For the predecessor search, we consider two lists of equal size, $A$ and $B$. For each element of $B$, we wish to find the largest element of $A$
+   less than that element of $B$.
+   As before, $f$ is computed as,
 \begin{equation}f=\frac{2\alpha}{2\alpha+3\beta}.\label{eqn:batch_predecessor_split}\end{equation}
 
 \heading{Multiway Merging}
-
-   Given input array $A$ consisting of $k$ sublists, denoted as $S_j$, 
-   where $j=1, 2,\ldots,k$, each of size  $\frac{n}{k}$ and sorted in non-decreasing order, we wish to output the $n$ total elements 
-   in sorted order. Furthermore, we assume that $k$ is small enough that we can load elements 
-   from each sublist into memory without degrading CPU cache utilization.
-   Similarly, $f$ is computed as,
+The multiway merge merges some number ($k$) of sorted sublists into one large sorted list.
+Similarly to the scan, $f$ is computed as,
 \begin{equation}f=\alpha/(\alpha+2\beta)\label{eqn:multiway_split}.\end{equation}
 
   \end{block}
